@@ -130,6 +130,30 @@ export class DemandService {
   }
 
   /**
+   * Limpa um objeto Task removendo campos undefined para evitar erros no Firebase
+   */
+  private cleanTaskForFirebase(task: Task): Omit<Task, 'id'> & { id: string } {
+    const cleaned: any = {
+      id: task.id,
+      title: task.title,
+      completed: task.completed,
+      inProgress: task.inProgress,
+      order: task.order,
+      createdAt: task.createdAt instanceof Date ? task.createdAt : new Date(task.createdAt)
+    };
+    
+    // Só inclui campos opcionais se existirem
+    if (task.completedAt) {
+      cleaned.completedAt = task.completedAt instanceof Date ? task.completedAt : new Date(task.completedAt);
+    }
+    if (task.link) {
+      cleaned.link = task.link;
+    }
+    
+    return cleaned;
+  }
+
+  /**
    * Adiciona apenas tarefas padrão que foram concluídas hoje e não existem na demanda.
    * Isso permite que tarefas padrão concluídas hoje sejam restauradas automaticamente,
    * mas tarefas concluídas em outros dias não serão restauradas.
@@ -195,11 +219,7 @@ export class DemandService {
       
       try {
         await updateDoc(demandRef, {
-          tasks: updatedTasks.map(t => ({
-            ...t,
-            createdAt: t.createdAt instanceof Date ? t.createdAt : new Date(t.createdAt),
-            completedAt: t.completedAt instanceof Date ? t.completedAt : (t.completedAt ? new Date(t.completedAt) : undefined)
-          })),
+          tasks: updatedTasks.map(t => this.cleanTaskForFirebase(t)),
           todayCompletedDefaultTasks: todayCompleted,
           updatedAt: serverTimestamp()
         });
@@ -222,12 +242,15 @@ export class DemandService {
     if (!user) throw new Error('Usuário não autenticado');
 
     const tasks: Task[] = useDefaultTasks 
-      ? DEFAULT_TASKS.map((task, index) => ({
-          ...task,
-          id: this.generateId(),
-          createdAt: new Date(),
-          order: index
-        }))
+      ? DEFAULT_TASKS.map((task, index) => {
+          const newTask: Task = {
+            ...task,
+            id: this.generateId(),
+            createdAt: new Date(),
+            order: index
+          };
+          return this.cleanTaskForFirebase(newTask);
+        })
       : [];
 
     // Default custom fields (Consultoria e Sistema) com valores preenchidos
@@ -311,8 +334,18 @@ export class DemandService {
 
   async updateDemand(demandId: string, updates: Partial<Omit<Demand, 'id' | 'userId' | 'createdAt'>>): Promise<void> {
     const demandRef = doc(this.firebase.firestore, 'demands', demandId);
+    
+    // Remove campos undefined para evitar erro no Firebase
+    const cleanUpdates: Record<string, unknown> = {};
+    Object.keys(updates).forEach(key => {
+      const value = updates[key as keyof typeof updates];
+      if (value !== undefined) {
+        cleanUpdates[key] = value;
+      }
+    });
+    
     await updateDoc(demandRef, {
-      ...updates,
+      ...cleanUpdates,
       updatedAt: serverTimestamp()
     });
   }
@@ -340,8 +373,10 @@ export class DemandService {
       createdAt: new Date()
     };
 
+    const allTasks = [...demand.tasks, newTask].map(t => this.cleanTaskForFirebase(t));
+
     await this.updateDemand(demandId, {
-      tasks: [...demand.tasks, newTask]
+      tasks: allTasks
     });
   }
 
@@ -349,9 +384,26 @@ export class DemandService {
     const demand = this.demandsSignal().find(d => d.id === demandId);
     if (!demand) throw new Error('Demanda não encontrada');
 
-    const updatedTasks = demand.tasks.map(task => 
-      task.id === taskId ? { ...task, ...updates } : task
-    );
+    const updatedTasks = demand.tasks.map(task => {
+      if (task.id === taskId) {
+        const updatedTask = { ...task };
+        
+        // Aplica apenas os campos que não são undefined
+        Object.keys(updates).forEach(key => {
+          const value = updates[key as keyof typeof updates];
+          if (value !== undefined) {
+            (updatedTask as any)[key] = value;
+          } else if (key === 'completedAt') {
+            // Se completedAt é undefined, remove o campo do objeto
+            delete updatedTask.completedAt;
+          }
+        });
+        
+        // Limpa o objeto antes de retornar
+        return this.cleanTaskForFirebase(updatedTask);
+      }
+      return this.cleanTaskForFirebase(task);
+    });
 
     await this.updateDemand(demandId, { tasks: updatedTasks });
   }
@@ -364,7 +416,8 @@ export class DemandService {
     if (!task) throw new Error('Tarefa não encontrada');
 
     const filteredTasks = demand.tasks.filter(task => task.id !== taskId);
-    const updates: Partial<Demand> = { tasks: filteredTasks };
+    const cleanedTasks = filteredTasks.map(t => this.cleanTaskForFirebase(t));
+    const updates: Partial<Demand> = { tasks: cleanedTasks };
     
     // Se a tarefa removida é uma tarefa padrão concluída hoje, remove do rastreamento
     const isDefaultTask = DEFAULT_TASKS.some(dt => dt.title === task.title);
@@ -408,8 +461,8 @@ export class DemandService {
         }
       }
     } else {
-      // Se está desmarcando, remove a data de conclusão
-      updates.completedAt = undefined;
+      // Se está desmarcando, não inclui completedAt (será removido na atualização)
+      // Não definimos como undefined, apenas não incluímos no objeto
       
       // Remove do rastreamento se for tarefa padrão
       const isDefaultTask = DEFAULT_TASKS.some(dt => dt.title === task.title);
@@ -433,10 +486,9 @@ export class DemandService {
     for (const demand of allDemands) {
       const tasksWithProgress = demand.tasks.filter(t => t.inProgress && t.id !== taskId);
       if (tasksWithProgress.length > 0) {
-        const updatedTasks = demand.tasks.map(t => ({
-          ...t,
-          inProgress: false
-        }));
+        const updatedTasks = demand.tasks.map(t => 
+          this.cleanTaskForFirebase({ ...t, inProgress: false })
+        );
         await this.updateDemand(demand.id, { tasks: updatedTasks });
       }
     }
@@ -449,10 +501,12 @@ export class DemandService {
     if (!task) throw new Error('Tarefa não encontrada');
 
     // Toggle: se já está em progresso, remove; senão, adiciona
-    const updatedTasks = demand.tasks.map(t => ({
-      ...t,
-      inProgress: t.id === taskId ? !t.inProgress : false
-    }));
+    const updatedTasks = demand.tasks.map(t => 
+      this.cleanTaskForFirebase({ 
+        ...t, 
+        inProgress: t.id === taskId ? !t.inProgress : false 
+      })
+    );
 
     await this.updateDemand(demandId, { tasks: updatedTasks });
   }
