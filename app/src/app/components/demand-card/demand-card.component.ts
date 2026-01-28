@@ -215,6 +215,10 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
       overflow: hidden;
       transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      min-height: 500px;
+      max-height: 650px;
     }
 
     .demand-card:hover {
@@ -371,6 +375,10 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
 
     .card-body {
       padding: 1rem 1.25rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
     }
 
     .tasks-header {
@@ -436,7 +444,9 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
-      max-height: 240px;
+      flex: 1;
+      min-height: 0;
+      max-height: 280px;
       overflow-y: auto;
       padding-right: 0.5rem;
     }

@@ -119,6 +119,24 @@ type DisplayMode = 'grid' | 'list';
               </select>
             </div>
 
+            <div class="filter-group">
+              <label for="filter-status">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+                Status
+              </label>
+              <select 
+                id="filter-status"
+                [ngModel]="filterByStatus()"
+                (ngModelChange)="filterByStatus.set($event)">
+                <option value="">Todos</option>
+                @for (statusOption of statusOptions(); track statusOption.value) {
+                  <option [value]="statusOption.value">{{ statusOption.config.icon }} {{ statusOption.config.label }}</option>
+                }
+              </select>
+            </div>
+
             <div class="display-toggle">
               <button 
                 class="toggle-btn" 
@@ -549,11 +567,17 @@ type DisplayMode = 'grid' | 'list';
       max-width: 400px;
     }
 
-    /* Grid - Cards menores */
+    /* Grid - Cards padronizados */
     .demands-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
       gap: 1.25rem;
+    }
+
+    .demands-grid app-demand-card {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
     }
 
     /* Filters Section */
@@ -1165,6 +1189,7 @@ export class DemandsComponent {
   filterById = signal('');
   filterByConsultoria = signal('');
   filterBySistema = signal('');
+  filterByStatus = signal<DemandStatus | ''>('');
 
   activeDemands = computed(() => 
     this.demands().filter(d => d.status !== 'concluido')
@@ -1198,8 +1223,19 @@ export class DemandsComponent {
     return Array.from(sistemas).sort();
   });
 
+  // Lista de opções de status para o filtro
+  statusOptions = computed(() => {
+    return Object.entries(STATUS_CONFIG).map(([value, config]) => ({
+      value: value as DemandStatus,
+      config
+    }));
+  });
+
   hasActiveFilters = computed(() => {
-    return this.filterById().trim() !== '' || this.filterByConsultoria() !== '' || this.filterBySistema() !== '';
+    return this.filterById().trim() !== '' || 
+           this.filterByConsultoria() !== '' || 
+           this.filterBySistema() !== '' || 
+           this.filterByStatus() !== '';
   });
 
   filteredDemands = computed(() => {
@@ -1208,6 +1244,7 @@ export class DemandsComponent {
     const idFilter = this.filterById().trim().toLowerCase();
     const consultoriaFilter = this.filterByConsultoria();
     const sistemaFilter = this.filterBySistema();
+    const statusFilter = this.filterByStatus();
 
     let filtered: Demand[];
     switch (mode) {
@@ -1244,6 +1281,11 @@ export class DemandsComponent {
       });
     }
 
+    // Aplicar filtro por Status
+    if (statusFilter) {
+      filtered = filtered.filter(d => d.status === statusFilter);
+    }
+
     // Ordenar por prioridade (crítica primeiro)
     return filtered.sort((a, b) => {
       const priorityA = PRIORITY_ORDER[a.priority] || 0;
@@ -1256,6 +1298,7 @@ export class DemandsComponent {
     this.filterById.set('');
     this.filterByConsultoria.set('');
     this.filterBySistema.set('');
+    this.filterByStatus.set('');
   }
 
   toggleExpand(demandId: string): void {

@@ -12,6 +12,7 @@ export interface Task {
   inProgress: boolean; // Tarefa em execução atual
   order: number;
   createdAt: Date;
+  completedAt?: Date; // Data de conclusão da tarefa
   link?: string; // Link externo opcional
 }
 
@@ -52,6 +53,7 @@ export interface Demand {
   updatedAt: Date;
   completedAt?: Date;
   order: number;
+  todayCompletedDefaultTasks?: string[]; // Títulos de tarefas padrão concluídas hoje
 }
 
 // Default tasks that every LT has
