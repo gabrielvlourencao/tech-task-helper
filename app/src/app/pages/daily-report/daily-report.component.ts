@@ -20,6 +20,19 @@ interface GroupedReport {
   }[];
 }
 
+// Entrada de histórico de daily - cada entrada representa uma daily específica
+interface DailyEntry {
+  targetDate: string;      // Data da daily (dia seguinte ao trabalho)
+  workDate: string;        // Data em que as tarefas foram feitas
+  reportItems: ReportItem[];
+  comments: { id: string; text: string }[];
+}
+
+// Histórico completo de dailies (máximo 3 dias)
+interface DailyHistory {
+  entries: DailyEntry[];
+}
+
 @Component({
   selector: 'app-daily-report',
   standalone: true,
@@ -37,10 +50,25 @@ interface GroupedReport {
               </svg>
             </a>
             <h2>Daily Report</h2>
-            <span class="report-date">{{ todayShort() }}</span>
+            <span class="report-date" [class.editable]="isEditableDate()">{{ selectedDateLabel() }}</span>
           </div>
+          
+          <!-- Seletor de datas do histórico -->
+          @if (dailyHistory().length > 1) {
+            <div class="date-selector">
+              @for (entry of dailyHistory(); track entry.targetDate) {
+                <button 
+                  class="date-btn" 
+                  [class.active]="selectedDate() === entry.targetDate"
+                  (click)="selectDate(entry.targetDate)">
+                  {{ getDateLabel(entry.targetDate) }}
+                  <span class="item-count">{{ entry.reportItems.length + entry.comments.length }}</span>
+                </button>
+              }
+            </div>
+          }
           <div class="header-actions">
-            <button class="btn-icon" (click)="refreshFromTasks()" title="Atualizar das tarefas">
+            <button class="btn-icon" (click)="refreshFromTasks()" [disabled]="!isEditableDate()" title="Atualizar das tarefas">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
                 <path d="M3 3v5h5"/>
@@ -63,6 +91,17 @@ interface GroupedReport {
           </div>
         </div>
 
+        @if (!isEditableDate()) {
+          <div class="readonly-notice">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span>Visualizando histórico (somente leitura). Para editar, selecione a daily de amanhã.</span>
+          </div>
+        }
+
         <div class="report-layout">
           <!-- Report Principal (Preview) -->
           <div class="report-main">
@@ -77,7 +116,9 @@ interface GroupedReport {
             <div class="sidebar-section">
               <div class="section-header-mini">
                 <span>✅ Tarefas ({{ taskCount() }})</span>
-                <button class="btn-clear" (click)="clearAllTasks()" title="Limpar todas">×</button>
+                @if (isEditableDate()) {
+                  <button class="btn-clear" (click)="clearAllTasks()" title="Limpar todas">×</button>
+                }
               </div>
               <div class="tasks-edit-section">
                 @if (groupedReports().length > 0) {
@@ -92,7 +133,7 @@ interface GroupedReport {
                           <div class="edit-tasks">
                             @for (item of demand.items; track item.id) {
                               <div class="edit-task-item">
-                                @if (editingId() === item.id) {
+                                @if (editingId() === item.id && isEditableDate()) {
                                   <input 
                                     type="text" 
                                     class="edit-input"
@@ -101,9 +142,11 @@ interface GroupedReport {
                                     (keydown.enter)="saveEdit($event, item)"
                                     (keydown.escape)="editingId.set(null)">
                                 } @else {
-                                  <span class="edit-task-text" (dblclick)="editingId.set(item.id)">{{ item.text }}</span>
+                                  <span class="edit-task-text" [class.readonly]="!isEditableDate()" (dblclick)="isEditableDate() && editingId.set(item.id)">{{ item.text }}</span>
                                 }
-                                <button class="btn-remove-task" (click)="removeTask(item.id)" title="Remover">×</button>
+                                @if (isEditableDate()) {
+                                  <button class="btn-remove-task" (click)="removeTask(item.id)" title="Remover">×</button>
+                                }
                               </div>
                             }
                           </div>
@@ -125,7 +168,7 @@ interface GroupedReport {
               <div class="comments-section">
                 @for (comment of comments(); track comment.id) {
                   <div class="comment-item">
-                    @if (editingId() === comment.id) {
+                    @if (editingId() === comment.id && isEditableDate()) {
                       <input 
                         type="text" 
                         class="edit-input"
@@ -134,20 +177,24 @@ interface GroupedReport {
                         (keydown.enter)="saveCommentEdit($event, comment)"
                         (keydown.escape)="editingId.set(null)">
                     } @else {
-                      <span class="comment-text" (dblclick)="editingId.set(comment.id)">{{ comment.text }}</span>
+                      <span class="comment-text" [class.readonly]="!isEditableDate()" (dblclick)="isEditableDate() && editingId.set(comment.id)">{{ comment.text }}</span>
                     }
-                    <button class="btn-remove-mini" (click)="removeComment(comment.id)">×</button>
+                    @if (isEditableDate()) {
+                      <button class="btn-remove-mini" (click)="removeComment(comment.id)">×</button>
+                    }
                   </div>
                 }
-                <div class="add-comment">
-                  <input 
-                    type="text" 
-                    placeholder="Adicionar observação..."
-                    [ngModel]="newComment()"
-                    (ngModelChange)="newComment.set($event)"
-                    (keydown.enter)="addComment()">
-                  <button class="btn-add-mini" (click)="addComment()" [disabled]="!newComment().trim()">+</button>
-                </div>
+                @if (isEditableDate()) {
+                  <div class="add-comment">
+                    <input 
+                      type="text" 
+                      placeholder="Adicionar observação..."
+                      [ngModel]="newComment()"
+                      (ngModelChange)="newComment.set($event)"
+                      (keydown.enter)="addComment()">
+                    <button class="btn-add-mini" (click)="addComment()" [disabled]="!newComment().trim()">+</button>
+                  </div>
+                }
               </div>
             </div>
           </div>
@@ -211,10 +258,83 @@ interface GroupedReport {
       font-size: 0.75rem;
       font-weight: 500;
     }
+    
+    .report-date.editable {
+      background: #d1fae5;
+      color: #059669;
+    }
 
     .header-actions {
       display: flex;
       gap: 0.5rem;
+    }
+    
+    /* Seletor de datas */
+    .date-selector {
+      display: flex;
+      gap: 0.375rem;
+      margin-left: auto;
+      margin-right: 0.5rem;
+    }
+    
+    .date-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.375rem 0.625rem;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      color: #6b7280;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .date-btn:hover {
+      background: #f3f4f6;
+      border-color: #d1d5db;
+    }
+    
+    .date-btn.active {
+      background: #667eea;
+      border-color: #667eea;
+      color: white;
+    }
+    
+    .date-btn .item-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 0.25rem;
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 9px;
+      font-size: 0.65rem;
+      font-weight: 600;
+    }
+    
+    .date-btn.active .item-count {
+      background: rgba(255, 255, 255, 0.25);
+    }
+    
+    /* Aviso de modo somente leitura */
+    .readonly-notice {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.625rem 0.875rem;
+      background: #fef3c7;
+      border: 1px solid #fcd34d;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: 0.8rem;
+      color: #92400e;
+    }
+    
+    .readonly-notice svg {
+      flex-shrink: 0;
     }
 
     .btn-icon {
@@ -230,9 +350,14 @@ interface GroupedReport {
       transition: all 0.2s ease;
     }
 
-    .btn-icon:hover {
+    .btn-icon:hover:not(:disabled) {
       background: #f3f4f6;
       color: #374151;
+    }
+    
+    .btn-icon:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
     }
 
     .btn-copy {
@@ -410,8 +535,12 @@ interface GroupedReport {
       padding: 0.125rem 0;
     }
 
-    .edit-task-text:hover {
+    .edit-task-text:hover:not(.readonly) {
       color: #667eea;
+    }
+    
+    .edit-task-text.readonly {
+      cursor: default;
     }
 
     .edit-input {
@@ -482,8 +611,12 @@ interface GroupedReport {
       cursor: text;
     }
 
-    .comment-text:hover {
+    .comment-text:hover:not(.readonly) {
       color: #667eea;
+    }
+    
+    .comment-text.readonly {
+      cursor: default;
     }
 
     .btn-remove-mini {
@@ -581,30 +714,103 @@ export class DailyReportComponent implements OnInit {
   editingId = signal<string | null>(null);
   newComment = signal('');
 
-  // Itens do report
+  // Histórico de dailies (máximo 3 dias)
+  dailyHistory = signal<DailyEntry[]>([]);
+  
+  // Data selecionada para visualização (targetDate)
+  selectedDate = signal<string>(this.getTargetDate());
+  
+  // Itens do report (computed baseado na data selecionada)
   reportItems = signal<ReportItem[]>([]);
   comments = signal<{ id: string; text: string }[]>([]);
+  
+  // Datas disponíveis no histórico para navegação
+  availableDates = computed(() => {
+    return this.dailyHistory().map(entry => entry.targetDate);
+  });
 
   ngOnInit(): void {
     this.loadFromStorage();
+    this.loadSelectedDateData();
     this.refreshFromTasks();
   }
+  
+  // Retorna a data alvo (amanhã) - quando você vai reportar na daily
+  private getTargetDate(): string {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toDateString();
+  }
+  
+  // Retorna a data de trabalho (hoje) - quando você está fazendo as tarefas
+  private getWorkDate(): string {
+    return new Date().toDateString();
+  }
+  
+  // Formata uma data para exibição curta (dd/mm)
+  formatDateShort(dateString: string): string {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  }
+  
+  // Formata uma data para exibição longa
+  formatDateLong(dateString: string): string {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+  
+  // Verifica se a data selecionada é a data alvo (editável)
+  isEditableDate(): boolean {
+    return this.selectedDate() === this.getTargetDate();
+  }
+  
+  // Carrega os dados da data selecionada
+  loadSelectedDateData(): void {
+    const entry = this.dailyHistory().find(e => e.targetDate === this.selectedDate());
+    if (entry) {
+      this.reportItems.set([...entry.reportItems]);
+      this.comments.set([...entry.comments]);
+    } else {
+      this.reportItems.set([]);
+      this.comments.set([]);
+    }
+  }
+  
+  // Muda para uma data específica do histórico
+  selectDate(dateString: string): void {
+    this.selectedDate.set(dateString);
+    this.loadSelectedDateData();
+  }
+  
+  // Retorna o label para a data (Hoje, Amanhã, ou data formatada)
+  getDateLabel(dateString: string): string {
+    const today = new Date().toDateString();
+    const tomorrow = this.getTargetDate();
+    
+    if (dateString === today) return 'Hoje';
+    if (dateString === tomorrow) return 'Amanhã';
+    return this.formatDateShort(dateString);
+  }
 
-  todayShort = computed(() => {
-    const options: Intl.DateTimeFormatOptions = { 
-      day: '2-digit', 
-      month: '2-digit'
-    };
-    return new Date().toLocaleDateString('pt-BR', options);
+  // Data selecionada formatada curta (dd/mm)
+  selectedDateShort = computed(() => {
+    return this.formatDateShort(this.selectedDate());
   });
 
-  todayFormatted = computed(() => {
-    const options: Intl.DateTimeFormatOptions = { 
-      weekday: 'long', 
-      day: 'numeric', 
-      month: 'long'
-    };
-    return new Date().toLocaleDateString('pt-BR', options);
+  // Data selecionada formatada longa
+  selectedDateFormatted = computed(() => {
+    return this.formatDateLong(this.selectedDate());
+  });
+  
+  // Label da data selecionada (para o header)
+  selectedDateLabel = computed(() => {
+    const today = new Date().toDateString();
+    const tomorrow = this.getTargetDate();
+    const selected = this.selectedDate();
+    
+    if (selected === tomorrow) return `Daily para ${this.formatDateShort(selected)} (amanhã)`;
+    if (selected === today) return `Daily de ${this.formatDateShort(selected)} (hoje)`;
+    return `Daily de ${this.formatDateShort(selected)}`;
   });
 
   taskCount = computed(() => this.reportItems().length);
@@ -742,7 +948,7 @@ export class DailyReportComponent implements OnInit {
       return '📋 Daily Report\n\nNenhuma atividade registrada.';
     }
 
-    let report = `📋 Daily Report - ${this.todayFormatted()}\n`;
+    let report = `📋 Daily Report - ${this.selectedDateFormatted()}\n`;
     report += `${'─'.repeat(40)}\n\n`;
 
     if (groups.length > 0) {
@@ -786,22 +992,115 @@ export class DailyReportComponent implements OnInit {
   }
 
   private saveToStorage(): void {
-    const data = {
-      date: new Date().toDateString(),
+    const targetDate = this.getTargetDate();
+    const workDate = this.getWorkDate();
+    
+    // Atualiza ou cria a entrada para a data alvo
+    const history = [...this.dailyHistory()];
+    const existingIndex = history.findIndex(e => e.targetDate === targetDate);
+    
+    const newEntry: DailyEntry = {
+      targetDate,
+      workDate,
       reportItems: this.reportItems(),
       comments: this.comments()
     };
-    localStorage.setItem('dailyReport', JSON.stringify(data));
+    
+    if (existingIndex >= 0) {
+      history[existingIndex] = newEntry;
+    } else {
+      history.push(newEntry);
+    }
+    
+    // Remove entradas com mais de 3 dias
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    
+    const filteredHistory = history.filter(entry => {
+      const entryDate = new Date(entry.targetDate);
+      return entryDate >= threeDaysAgo;
+    });
+    
+    // Mantém no máximo 3 entradas (as mais recentes)
+    const sortedHistory = filteredHistory
+      .sort((a, b) => new Date(b.targetDate).getTime() - new Date(a.targetDate).getTime())
+      .slice(0, 3);
+    
+    this.dailyHistory.set(sortedHistory);
+    
+    localStorage.setItem('dailyHistory', JSON.stringify({ entries: sortedHistory }));
   }
 
   private loadFromStorage(): void {
-    const stored = localStorage.getItem('dailyReport');
-    if (stored) {
+    // Tenta carregar o novo formato (dailyHistory)
+    const storedHistory = localStorage.getItem('dailyHistory');
+    if (storedHistory) {
       try {
-        const data = JSON.parse(stored);
-        if (data.date === new Date().toDateString()) {
-          this.reportItems.set(data.reportItems || []);
-          this.comments.set(data.comments || []);
+        const data: DailyHistory = JSON.parse(storedHistory);
+        if (data.entries && Array.isArray(data.entries)) {
+          // Limpa entradas antigas (mais de 3 dias)
+          const threeDaysAgo = new Date();
+          threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+          
+          const validEntries = data.entries.filter(entry => {
+            const entryDate = new Date(entry.targetDate);
+            return entryDate >= threeDaysAgo;
+          });
+          
+          this.dailyHistory.set(validEntries);
+          
+          // Define a data selecionada como a mais relevante
+          // Prioridade: hoje (para reportar) > amanhã (para editar)
+          const today = new Date().toDateString();
+          const tomorrow = this.getTargetDate();
+          
+          const todayEntry = validEntries.find(e => e.targetDate === today);
+          const tomorrowEntry = validEntries.find(e => e.targetDate === tomorrow);
+          
+          if (todayEntry) {
+            this.selectedDate.set(today);
+          } else if (tomorrowEntry) {
+            this.selectedDate.set(tomorrow);
+          } else if (validEntries.length > 0) {
+            // Seleciona a entrada mais recente
+            const sorted = [...validEntries].sort((a, b) => 
+              new Date(b.targetDate).getTime() - new Date(a.targetDate).getTime()
+            );
+            this.selectedDate.set(sorted[0].targetDate);
+          } else {
+            // Nenhuma entrada, usa amanhã como padrão
+            this.selectedDate.set(tomorrow);
+          }
+          
+          return;
+        }
+      } catch {
+        // Ignore invalid data
+      }
+    }
+    
+    // Migração: tenta carregar o formato antigo (dailyReport)
+    const storedOld = localStorage.getItem('dailyReport');
+    if (storedOld) {
+      try {
+        const data = JSON.parse(storedOld);
+        if (data.date && data.reportItems) {
+          // Converte para o novo formato
+          // O formato antigo usa data de hoje, mas na nova lógica seria para amanhã
+          const targetDate = this.getTargetDate();
+          const entry: DailyEntry = {
+            targetDate,
+            workDate: data.date,
+            reportItems: data.reportItems || [],
+            comments: data.comments || []
+          };
+          
+          this.dailyHistory.set([entry]);
+          this.selectedDate.set(targetDate);
+          
+          // Migra para o novo formato e remove o antigo
+          localStorage.setItem('dailyHistory', JSON.stringify({ entries: [entry] }));
+          localStorage.removeItem('dailyReport');
         }
       } catch {
         // Ignore invalid data

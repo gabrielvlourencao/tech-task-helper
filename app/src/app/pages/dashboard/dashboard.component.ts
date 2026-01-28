@@ -176,6 +176,7 @@ import { HeaderComponent } from '../../components/header/header.component';
                   <line x1="16" y1="17" x2="8" y2="17"></line>
                 </svg>
                 Report para Daily
+                <span class="daily-target-date">{{ tomorrowFormatted() }}</span>
               </h2>
               <div class="report-actions">
                 <a routerLink="/daily-report" class="btn-edit-report">
@@ -853,6 +854,16 @@ import { HeaderComponent } from '../../components/header/header.component';
     .section-header h2 svg {
       color: #667eea;
     }
+    
+    .daily-target-date {
+      background: #d1fae5;
+      color: #059669;
+      padding: 0.125rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      margin-left: 0.25rem;
+    }
 
     .report-actions {
       display: flex;
@@ -1443,7 +1454,7 @@ export class DashboardComponent {
     const groups = this.groupedCompletedTasks();
     if (groups.length === 0) return '';
 
-    let report = `📋 Daily Report - ${this.todayFormatted()}\n`;
+    let report = `📋 Daily Report - ${this.tomorrowFormattedLong()}\n`;
     report += `${'─'.repeat(35)}\n\n`;
 
     groups.forEach(group => {
@@ -1468,6 +1479,25 @@ export class DashboardComponent {
       year: 'numeric' 
     };
     return new Date().toLocaleDateString('pt-BR', options);
+  });
+  
+  // Data de amanhã formatada curta (dd/mm) para o header
+  tomorrowFormatted = computed(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  });
+  
+  // Data de amanhã formatada longa para o report
+  tomorrowFormattedLong = computed(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const options: Intl.DateTimeFormatOptions = { 
+      weekday: 'long', 
+      day: 'numeric', 
+      month: 'long'
+    };
+    return tomorrow.toLocaleDateString('pt-BR', options);
   });
 
   getGreeting(): string {
