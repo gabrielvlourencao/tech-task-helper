@@ -22,6 +22,20 @@ import { Demand, Priority, DemandStatus, PRIORITY_CONFIG, STATUS_CONFIG } from '
 
         <div class="modal-body">
           <div class="form-group">
+            <label for="code">ID da Demanda (DMND) <span class="required">*</span></label>
+            <input 
+              type="text" 
+              id="code"
+              placeholder="Ex: DMND12345"
+              [ngModel]="code()"
+              (ngModelChange)="code.set($event)"
+              [class.invalid]="!code().trim() && showValidation()">
+            @if (!code().trim() && showValidation()) {
+              <span class="error-msg">ID da demanda é obrigatório</span>
+            }
+          </div>
+
+          <div class="form-group">
             <label for="title">Título da Demanda</label>
             <input 
               type="text" 
@@ -67,6 +81,20 @@ import { Demand, Priority, DemandStatus, PRIORITY_CONFIG, STATUS_CONFIG } from '
           </div>
 
           <div class="form-group">
+            <label for="sistema">Nome do Sistema <span class="required">*</span></label>
+            <input 
+              type="text" 
+              id="sistema"
+              placeholder="Nome do sistema (ex: SAP, Salesforce...)"
+              [ngModel]="sistema()"
+              (ngModelChange)="sistema.set($event)"
+              [class.invalid]="!sistema().trim() && showValidation()">
+            @if (!sistema().trim() && showValidation()) {
+              <span class="error-msg">Nome do sistema é obrigatório</span>
+            }
+          </div>
+
+          <div class="form-group">
             <label for="consultoria">Consultoria</label>
             <input 
               type="text" 
@@ -95,7 +123,7 @@ import { Demand, Priority, DemandStatus, PRIORITY_CONFIG, STATUS_CONFIG } from '
           <button class="btn-cancel" (click)="onClose.emit()">Cancelar</button>
           <button 
             class="btn-save" 
-            [disabled]="!title().trim()"
+            [disabled]="!code().trim() || !sistema().trim()"
             (click)="save()">
             {{ demand ? 'Salvar Alterações' : 'Criar Demanda' }}
           </button>
@@ -209,6 +237,23 @@ import { Demand, Priority, DemandStatus, PRIORITY_CONFIG, STATUS_CONFIG } from '
       outline: none;
       border-color: #667eea;
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-group input[type="text"].invalid {
+      border-color: #dc2626;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    }
+
+    .required {
+      color: #dc2626;
+      font-weight: 600;
+    }
+
+    .error-msg {
+      display: block;
+      color: #dc2626;
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
     }
 
     .priority-options {
@@ -350,13 +395,16 @@ import { Demand, Priority, DemandStatus, PRIORITY_CONFIG, STATUS_CONFIG } from '
 export class DemandModalComponent implements OnInit {
   @Input() demand: Demand | null = null;
   @Output() onClose = new EventEmitter<void>();
-  @Output() onSave = new EventEmitter<{ title: string; priority: Priority; status: DemandStatus; consultoria: string; useDefaultTasks: boolean }>();
+  @Output() onSave = new EventEmitter<{ code: string; title: string; priority: Priority; status: DemandStatus; consultoria: string; sistema: string; useDefaultTasks: boolean }>();
 
+  code = signal('');
   title = signal('');
   priority = signal<Priority>('medium');
   status = signal<DemandStatus>('setup');
   consultoria = signal('');
+  sistema = signal('');
   useDefaultTasks = signal(true);
+  showValidation = signal(false);
 
   priorityOptions = Object.entries(PRIORITY_CONFIG).map(([value, config]) => ({
     value: value as Priority,
@@ -370,6 +418,7 @@ export class DemandModalComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.demand) {
+      this.code.set(this.demand.code);
       this.title.set(this.demand.title);
       this.priority.set(this.demand.priority);
       this.status.set(this.demand.status || 'setup');
@@ -379,17 +428,27 @@ export class DemandModalComponent implements OnInit {
       if (consultoriaField) {
         this.consultoria.set(consultoriaField.value);
       }
+
+      // Buscar valor do campo Sistema
+      const sistemaField = this.demand.customFields.find(f => f.name === 'Sistema');
+      if (sistemaField) {
+        this.sistema.set(sistemaField.value);
+      }
     }
   }
 
   save(): void {
-    if (!this.title().trim()) return;
+    this.showValidation.set(true);
+    
+    if (!this.code().trim() || !this.sistema().trim()) return;
 
     this.onSave.emit({
+      code: this.code().trim(),
       title: this.title().trim(),
       priority: this.priority(),
       status: this.status(),
       consultoria: this.consultoria().trim(),
+      sistema: this.sistema().trim(),
       useDefaultTasks: this.useDefaultTasks()
     });
   }

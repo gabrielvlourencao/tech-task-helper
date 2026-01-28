@@ -727,7 +727,7 @@ export class DemandCardComponent {
   };
 
   // Campos default que não podem ser removidos
-  readonly defaultFieldNames = ['Consultoria'];
+  readonly defaultFieldNames = ['Consultoria', 'Sistema'];
 
   getPriorityConfig() {
     return PRIORITY_CONFIG[this.demand.priority];

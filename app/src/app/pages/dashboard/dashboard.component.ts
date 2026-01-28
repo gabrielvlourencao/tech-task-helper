@@ -1,7 +1,7 @@
 import { Component, inject, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { AuthService, DemandService, Demand, Task, STATUS_CONFIG, DemandStatus } from '../../core';
+import { AuthService, DemandService, Demand, Task, STATUS_CONFIG, DemandStatus, PRIORITY_CONFIG, PRIORITY_ORDER, Priority, STATUS_CRITICALITY } from '../../core';
 import { HeaderComponent } from '../../components/header/header.component';
 
 @Component({
@@ -30,36 +30,36 @@ import { HeaderComponent } from '../../components/header/header.component';
         </section>
 
         <!-- Stats Cards -->
-        <section class="stats-section">
-          <div class="stat-card">
+        <section class="stats-section stats-compact">
+          <div class="stat-card stat-card-compact">
             <div class="stat-icon blue">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                 <polyline points="14 2 14 8 20 8"></polyline>
               </svg>
             </div>
             <div class="stat-info">
               <span class="stat-value">{{ totalDemands() }}</span>
-              <span class="stat-label">Total de Demandas</span>
+              <span class="stat-label">Total</span>
             </div>
           </div>
 
-          <div class="stat-card">
+          <div class="stat-card stat-card-compact">
             <div class="stat-icon orange">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <polyline points="12 6 12 12 16 14"></polyline>
               </svg>
             </div>
             <div class="stat-info">
               <span class="stat-value">{{ activeDemands() }}</span>
-              <span class="stat-label">Em Andamento</span>
+              <span class="stat-label">Ativas</span>
             </div>
           </div>
 
-          <div class="stat-card">
+          <div class="stat-card stat-card-compact">
             <div class="stat-icon green">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
@@ -69,19 +69,79 @@ import { HeaderComponent } from '../../components/header/header.component';
               <span class="stat-label">Concluídas</span>
             </div>
           </div>
+        </section>
 
-          <div class="stat-card">
-            <div class="stat-icon purple">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="9 11 12 14 22 4"></polyline>
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+        <!-- Tarefas por Status -->
+        <section class="priority-tasks-section">
+          <div class="section-header">
+            <h2>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m3 8 4-4 4 4"/>
+                <path d="M7 4v16"/>
+                <path d="M11 12h4"/>
+                <path d="M11 16h7"/>
+                <path d="M11 20h10"/>
               </svg>
-            </div>
-            <div class="stat-info">
-              <span class="stat-value">{{ totalTasks() }}</span>
-              <span class="stat-label">Tarefas Total</span>
-            </div>
+              Tarefas Pendentes
+            </h2>
+            <span class="pending-count">{{ pendingTasksCount() }} pendente(s)</span>
           </div>
+          
+          @if (tasksByStatus().length > 0) {
+            <div class="status-groups">
+              @for (group of tasksByStatus(); track group.status) {
+                <div class="status-group" [class.collapsed]="!isStatusExpanded(group.status)">
+                  <button class="status-group-header" [style.border-left-color]="group.statusConfig.color" (click)="toggleStatusExpand(group.status)">
+                    <span class="expand-icon" [class.expanded]="isStatusExpanded(group.status)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </span>
+                    <span class="status-group-icon">{{ group.statusConfig.icon }}</span>
+                    <span class="status-group-label" [style.color]="group.statusConfig.color">{{ group.statusConfig.label }}</span>
+                    <span class="status-group-count">{{ group.tasks.length }}</span>
+                  </button>
+                  @if (isStatusExpanded(group.status)) {
+                    <div class="status-group-tasks">
+                      @for (item of group.tasks; track item.task.id) {
+                        <div class="priority-task-item" [class.in-progress]="item.task.inProgress">
+                          <div class="task-info">
+                            <div class="task-meta">
+                              <span class="task-demand-code">{{ item.demandCode }}</span>
+                              @if (item.sistema) {
+                                <span class="task-sistema-badge">{{ item.sistema }}</span>
+                              }
+                              @if (item.task.inProgress) {
+                                <span class="in-progress-badge">
+                                  <span class="pulse-dot-mini"></span>
+                                  Em execução
+                                </span>
+                              }
+                            </div>
+                            <span class="task-title-text">{{ item.task.title }}</span>
+                          </div>
+                          <a routerLink="/demandas" class="btn-go-task-mini" title="Ver demanda">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="m9 18 6-6-6-6"/>
+                            </svg>
+                          </a>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="empty-priority-tasks">
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              <p>Nenhuma tarefa pendente!</p>
+              <span>Todas as tarefas foram concluídas</span>
+            </div>
+          }
         </section>
 
         <!-- Current Task Section -->
@@ -117,28 +177,51 @@ import { HeaderComponent } from '../../components/header/header.component';
                 </svg>
                 Report para Daily
               </h2>
-              <button class="btn-copy" (click)="copyDailyReport()" [disabled]="!dailyReport()">
-                @if (copied()) {
+              <div class="report-actions">
+                <a routerLink="/daily-report" class="btn-edit-report">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
+                    <path d="M12 20h9"/>
+                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
                   </svg>
-                  Copiado!
-                } @else {
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                  </svg>
-                  Copiar
-                }
-              </button>
+                  Editar
+                </a>
+                <button class="btn-copy" (click)="copyDailyReport()" [disabled]="!dailyReport()">
+                  @if (copied()) {
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    Copiado!
+                  } @else {
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    Copiar
+                  }
+                </button>
+              </div>
             </div>
             <div class="report-content">
-              @if (recentCompletedTasks().length > 0) {
-                <pre class="report-text">{{ dailyReport() }}</pre>
+              @if (groupedCompletedTasks().length > 0) {
+                <div class="report-grouped">
+                  @for (group of groupedCompletedTasks(); track group.sistema) {
+                    <div class="report-system-group">
+                      <span class="system-label">{{ group.sistema }}</span>
+                      @for (demand of group.demands; track demand.code) {
+                        <div class="report-demand">
+                          <span class="demand-code-mini">{{ demand.code }}</span>
+                          <span class="task-count">{{ demand.tasks.length }} tarefa(s)</span>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+                <a routerLink="/daily-report" class="btn-view-full">Ver report completo →</a>
               } @else {
                 <div class="empty-report">
                   <p>Nenhuma tarefa concluída nas últimas 24h</p>
                   <span>Complete tarefas para gerar o report</span>
+                  <a routerLink="/daily-report" class="btn-add-manual">Adicionar item manual</a>
                 </div>
               }
             </div>
@@ -291,10 +374,294 @@ import { HeaderComponent } from '../../components/header/header.component';
       margin-bottom: 2rem;
     }
 
+    .stats-section.stats-compact {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
     .stat-card {
       background: white;
       border-radius: 16px;
       padding: 1.5rem;
+
+    }
+
+    .stat-card.stat-card-compact {
+      padding: 1rem;
+      border-radius: 12px;
+    }
+
+    .stat-card-compact .stat-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+    }
+
+    .stat-card-compact .stat-value {
+      font-size: 1.5rem;
+    }
+
+    .stat-card-compact .stat-label {
+      font-size: 0.75rem;
+    }
+
+    /* Tarefas por Status */
+    .priority-tasks-section {
+      background: white;
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .priority-tasks-section .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .priority-tasks-section .section-header h2 {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #1f2937;
+      margin: 0;
+    }
+
+    .priority-tasks-section .section-header h2 svg {
+      color: #667eea;
+    }
+
+    .pending-count {
+      background: #f3f4f6;
+      color: #6b7280;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .status-groups {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .status-group {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .status-group-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      background: #f9fafb;
+      border: none;
+      border-left: 4px solid;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      text-align: left;
+    }
+
+    .status-group-header:hover {
+      background: #f3f4f6;
+    }
+
+    .expand-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #9ca3af;
+      transition: transform 0.2s ease;
+    }
+
+    .expand-icon.expanded {
+      transform: rotate(90deg);
+    }
+
+    .status-group.collapsed .status-group-header {
+      border-radius: 10px;
+    }
+
+    .status-group-icon {
+      font-size: 0.9rem;
+    }
+
+    .status-group-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .status-group-count {
+      margin-left: auto;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #6b7280;
+      background: white;
+      padding: 0.125rem 0.5rem;
+      border-radius: 10px;
+    }
+
+    .status-group-tasks {
+      padding: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+    }
+
+    .priority-task-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      background: white;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      border: 1px solid #f3f4f6;
+    }
+
+    .priority-task-item:hover {
+      background: #f9fafb;
+      border-color: #e5e7eb;
+    }
+
+    .priority-task-item.in-progress {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+      border: 1px solid rgba(102, 126, 234, 0.3);
+    }
+
+    .task-sistema-badge {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: #7c3aed;
+      background: #f3e8ff;
+      padding: 0.125rem 0.375rem;
+      border-radius: 4px;
+    }
+
+    .task-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .task-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.25rem;
+      flex-wrap: wrap;
+    }
+
+    .task-demand-code {
+      font-family: 'SF Mono', 'Consolas', monospace;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #667eea;
+      background: #eef2ff;
+      padding: 0.125rem 0.375rem;
+      border-radius: 4px;
+    }
+
+    .task-priority-badge {
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 0.125rem 0.375rem;
+      border-radius: 4px;
+    }
+
+    .in-progress-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: #667eea;
+      background: white;
+      padding: 0.125rem 0.5rem;
+      border-radius: 10px;
+    }
+
+    .pulse-dot-mini {
+      width: 6px;
+      height: 6px;
+      background: #667eea;
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+
+    .task-title-text {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #1f2937;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .task-demand-name {
+      display: block;
+      font-size: 0.75rem;
+      color: #6b7280;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .btn-go-task-mini {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      color: #6b7280;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .btn-go-task-mini:hover {
+      background: #667eea;
+      border-color: #667eea;
+      color: white;
+    }
+
+    .empty-priority-tasks {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      color: #10b981;
+      text-align: center;
+    }
+
+    .empty-priority-tasks svg {
+      margin-bottom: 0.75rem;
+    }
+
+    .empty-priority-tasks p {
+      margin: 0;
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .empty-priority-tasks span {
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+
+    .stat-card {
       display: flex;
       align-items: center;
       gap: 1rem;
@@ -487,6 +854,34 @@ import { HeaderComponent } from '../../components/header/header.component';
       color: #667eea;
     }
 
+    .report-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-edit-report {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.5rem 0.75rem;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      color: #6b7280;
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-edit-report:hover {
+      background: #f3f4f6;
+      color: #667eea;
+      border-color: #667eea;
+    }
+
     .btn-copy {
       display: flex;
       align-items: center;
@@ -538,6 +933,88 @@ import { HeaderComponent } from '../../components/header/header.component';
       color: #374151;
       white-space: pre-wrap;
       line-height: 1.6;
+    }
+
+    .report-grouped {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .report-system-group {
+      background: #f9fafb;
+      border-radius: 8px;
+      padding: 0.75rem;
+    }
+
+    .system-label {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #7c3aed;
+      background: #f3e8ff;
+      padding: 0.125rem 0.5rem;
+      border-radius: 4px;
+      margin-bottom: 0.5rem;
+    }
+
+    .report-demand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.25rem 0;
+      margin-left: 0.5rem;
+    }
+
+    .demand-code-mini {
+      font-family: 'SF Mono', 'Consolas', monospace;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #667eea;
+      background: #eef2ff;
+      padding: 0.125rem 0.375rem;
+      border-radius: 4px;
+    }
+
+    .task-count {
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+
+    .btn-view-full {
+      display: block;
+      text-align: center;
+      padding: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #667eea;
+      text-decoration: none;
+      border-top: 1px solid #e5e7eb;
+      margin-top: 0.5rem;
+      transition: color 0.2s ease;
+    }
+
+    .btn-view-full:hover {
+      color: #764ba2;
+    }
+
+    .btn-add-manual {
+      display: inline-block;
+      margin-top: 0.75rem;
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #667eea;
+      background: #eef2ff;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .btn-add-manual:hover {
+      background: #667eea;
+      color: white;
     }
 
     .empty-report {
@@ -754,8 +1231,29 @@ import { HeaderComponent } from '../../components/header/header.component';
         font-size: 1.5rem;
       }
 
-      .stats-section {
-        grid-template-columns: 1fr 1fr;
+      .stats-section.stats-compact {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+      }
+
+      .stat-card-compact .stat-value {
+        font-size: 1.25rem;
+      }
+
+      .stat-card-compact .stat-label {
+        font-size: 0.65rem;
+      }
+
+      .priority-tasks-section {
+        padding: 1rem;
+      }
+
+      .priority-task-item {
+        padding: 0.5rem;
+      }
+
+      .task-title-text {
+        font-size: 0.85rem;
       }
 
       .recent-demands {
@@ -781,6 +1279,7 @@ export class DashboardComponent {
   user = this.authService.user;
   demands = this.demandService.demands;
   copied = signal(false);
+  expandedStatuses = signal<Set<DemandStatus>>(new Set(['bloqueado', 'desenvolvimento', 'homologacao']));
 
   firstName = computed(() => {
     const name = this.user()?.displayName;
@@ -798,7 +1297,70 @@ export class DashboardComponent {
   totalDemands = computed(() => this.demands().length);
   activeDemands = computed(() => this.demands().filter(d => d.status !== 'concluido').length);
   completedDemands = computed(() => this.demands().filter(d => d.status === 'concluido').length);
-  totalTasks = computed(() => this.demands().reduce((acc, d) => acc + d.tasks.length, 0));
+
+  // Tarefas pendentes ordenadas por prioridade
+  // Tarefas agrupadas por status e ordenadas por criticidade
+  tasksByStatus = computed(() => {
+    const grouped = new Map<DemandStatus, { 
+      task: Task; 
+      demandCode: string; 
+      demandTitle: string;
+      sistema: string;
+    }[]>();
+
+    this.demands()
+      .filter(d => d.status !== 'concluido')
+      .forEach(demand => {
+        const sistema = demand.customFields.find(f => f.name === 'Sistema')?.value || '';
+        
+        demand.tasks
+          .filter(t => !t.completed)
+          .forEach(task => {
+            if (!grouped.has(demand.status)) {
+              grouped.set(demand.status, []);
+            }
+            grouped.get(demand.status)!.push({
+              task,
+              demandCode: demand.code,
+              demandTitle: demand.title,
+              sistema
+            });
+          });
+      });
+
+    // Converter para array e ordenar por criticidade do status
+    const result: { 
+      status: DemandStatus; 
+      statusConfig: typeof STATUS_CONFIG[DemandStatus];
+      tasks: { task: Task; demandCode: string; demandTitle: string; sistema: string }[];
+    }[] = [];
+
+    grouped.forEach((tasks, status) => {
+      // Ordenar tarefas dentro do grupo: em progresso primeiro
+      const sortedTasks = tasks.sort((a, b) => {
+        if (a.task.inProgress && !b.task.inProgress) return -1;
+        if (!a.task.inProgress && b.task.inProgress) return 1;
+        return 0;
+      });
+
+      result.push({
+        status,
+        statusConfig: STATUS_CONFIG[status],
+        tasks: sortedTasks.slice(0, 5) // Limitar a 5 tarefas por status
+      });
+    });
+
+    // Ordenar grupos por criticidade do status (maior primeiro)
+    return result.sort((a, b) => 
+      (STATUS_CRITICALITY[b.status] || 0) - (STATUS_CRITICALITY[a.status] || 0)
+    );
+  });
+
+  pendingTasksCount = computed(() => {
+    return this.demands()
+      .filter(d => d.status !== 'concluido')
+      .reduce((acc, d) => acc + d.tasks.filter(t => !t.completed).length, 0);
+  });
 
   currentTask = computed(() => {
     for (const demand of this.demands()) {
@@ -821,9 +1383,11 @@ export class DashboardComponent {
     const oneDayAgo = new Date();
     oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
-    const tasks: { task: Task; demandCode: string; demandTitle: string }[] = [];
+    const tasks: { task: Task; demandCode: string; demandTitle: string; sistema: string }[] = [];
 
     this.demands().forEach(demand => {
+      const sistema = demand.customFields.find(f => f.name === 'Sistema')?.value || 'Sem Sistema';
+      
       demand.tasks.forEach(task => {
         if (task.completed) {
           // Se a demanda foi atualizada nas últimas 24h, consideramos as tarefas concluídas
@@ -831,7 +1395,8 @@ export class DashboardComponent {
             tasks.push({
               task,
               demandCode: demand.code,
-              demandTitle: demand.title
+              demandTitle: demand.title,
+              sistema
             });
           }
         }
@@ -841,29 +1406,53 @@ export class DashboardComponent {
     return tasks;
   });
 
-  dailyReport = computed(() => {
+  // Agrupa tarefas por Sistema e Demanda para exibição no dashboard
+  groupedCompletedTasks = computed(() => {
     const tasks = this.recentCompletedTasks();
-    if (tasks.length === 0) return '';
+    const grouped = new Map<string, Map<string, { code: string; title: string; tasks: Task[] }>>();
 
-    // Agrupar por demanda
-    const grouped = tasks.reduce((acc, item) => {
-      if (!acc[item.demandCode]) {
-        acc[item.demandCode] = {
+    tasks.forEach(item => {
+      if (!grouped.has(item.sistema)) {
+        grouped.set(item.sistema, new Map());
+      }
+
+      const sistemaDemands = grouped.get(item.sistema)!;
+      if (!sistemaDemands.has(item.demandCode)) {
+        sistemaDemands.set(item.demandCode, {
+          code: item.demandCode,
           title: item.demandTitle,
           tasks: []
-        };
+        });
       }
-      acc[item.demandCode].tasks.push(item.task.title);
-      return acc;
-    }, {} as Record<string, { title: string; tasks: string[] }>);
 
-    let report = `📋 Report Daily - ${this.todayFormatted()}\n\n`;
-    report += `✅ Tarefas concluídas:\n\n`;
+      sistemaDemands.get(item.demandCode)!.tasks.push(item.task);
+    });
 
-    Object.entries(grouped).forEach(([code, data]) => {
-      report += `${code} - ${data.title}\n`;
-      data.tasks.forEach(task => {
-        report += `  • ${task}\n`;
+    const result: { sistema: string; demands: { code: string; title: string; tasks: Task[] }[] }[] = [];
+    grouped.forEach((demands, sistema) => {
+      result.push({
+        sistema,
+        demands: Array.from(demands.values())
+      });
+    });
+
+    return result.sort((a, b) => a.sistema.localeCompare(b.sistema));
+  });
+
+  dailyReport = computed(() => {
+    const groups = this.groupedCompletedTasks();
+    if (groups.length === 0) return '';
+
+    let report = `📋 Daily Report - ${this.todayFormatted()}\n`;
+    report += `${'─'.repeat(35)}\n\n`;
+
+    groups.forEach(group => {
+      report += `📦 ${group.sistema}\n`;
+      group.demands.forEach(demand => {
+        report += `   ${demand.code}\n`;
+        demand.tasks.forEach(task => {
+          report += `   • ${task.title}\n`;
+        });
       });
       report += '\n';
     });
@@ -886,6 +1475,20 @@ export class DashboardComponent {
     if (hour < 12) return 'Bom dia';
     if (hour < 18) return 'Boa tarde';
     return 'Boa noite';
+  }
+
+  isStatusExpanded(status: DemandStatus): boolean {
+    return this.expandedStatuses().has(status);
+  }
+
+  toggleStatusExpand(status: DemandStatus): void {
+    const current = new Set(this.expandedStatuses());
+    if (current.has(status)) {
+      current.delete(status);
+    } else {
+      current.add(status);
+    }
+    this.expandedStatuses.set(current);
   }
 
   getStatusConfig(status: DemandStatus) {

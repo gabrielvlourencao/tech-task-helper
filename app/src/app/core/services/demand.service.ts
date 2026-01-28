@@ -117,11 +117,13 @@ export class DemandService {
   }
 
   async createDemand(
+    code: string,
     title: string,
     priority: Demand['priority'] = 'medium',
     useDefaultTasks: boolean = true,
     status: DemandStatus = 'setup',
-    consultoria: string = ''
+    consultoria: string = '',
+    sistema: string = ''
   ): Promise<string> {
     const user = this.authService.user();
     if (!user) throw new Error('Usuário não autenticado');
@@ -135,11 +137,11 @@ export class DemandService {
         }))
       : [];
 
-    // Default custom fields (Consultoria) com valor preenchido
+    // Default custom fields (Consultoria e Sistema) com valores preenchidos
     const customFields: CustomField[] = DEFAULT_CUSTOM_FIELDS.map(field => ({
       ...field,
       id: this.generateId(),
-      value: field.name === 'Consultoria' ? consultoria : field.value
+      value: field.name === 'Consultoria' ? consultoria : field.name === 'Sistema' ? sistema : field.value
     }));
 
     const currentDemands = this.demandsSignal();
@@ -148,7 +150,7 @@ export class DemandService {
       : -1;
 
     const demandData = {
-      code: this.generateDemandCode(),
+      code: code || this.generateDemandCode(),
       title,
       priority,
       status,
@@ -187,6 +189,29 @@ export class DemandService {
     const updatedFields = demand.customFields.map(field =>
       field.name === 'Consultoria' ? { ...field, value } : field
     );
+
+    await this.updateDemand(demandId, { customFields: updatedFields });
+  }
+
+  async updateSistema(demandId: string, value: string): Promise<void> {
+    const demand = this.demandsSignal().find(d => d.id === demandId);
+    if (!demand) throw new Error('Demanda não encontrada');
+
+    // Verifica se o campo Sistema já existe
+    const hasSystemField = demand.customFields.some(f => f.name === 'Sistema');
+    
+    let updatedFields: CustomField[];
+    if (hasSystemField) {
+      updatedFields = demand.customFields.map(field =>
+        field.name === 'Sistema' ? { ...field, value } : field
+      );
+    } else {
+      // Adiciona o campo Sistema se não existir (para demandas antigas)
+      updatedFields = [
+        ...demand.customFields,
+        { id: this.generateId(), name: 'Sistema', value, color: '#7c3aed' }
+      ];
+    }
 
     await this.updateDemand(demandId, { customFields: updatedFields });
   }

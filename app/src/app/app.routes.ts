@@ -13,6 +13,11 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'daily-report',
+    loadComponent: () => import('./pages/daily-report/daily-report.component').then(m => m.DailyReportComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'login',
     loadComponent: () => import('./pages/login/login.component').then(m => m.LoginComponent),
     canActivate: [publicGuard]
