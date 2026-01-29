@@ -2,7 +2,7 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { DemandService } from '../../core';
+import { DemandService, AuthService, DailyReportService } from '../../core';
 import { HeaderComponent } from '../../components/header/header.component';
 
 interface ReportItem {
@@ -22,15 +22,11 @@ interface GroupedReport {
 
 // Entrada de histórico de daily - cada entrada representa uma daily específica
 interface DailyEntry {
-  targetDate: string;      // Data da daily (dia seguinte ao trabalho)
-  workDate: string;        // Data em que as tarefas foram feitas
+  targetDate: string;
+  workDate: string;
   reportItems: ReportItem[];
   comments: { id: string; text: string }[];
-}
-
-// Histórico completo de dailies (máximo 3 dias)
-interface DailyHistory {
-  entries: DailyEntry[];
+  includeTasksInReport?: boolean;
 }
 
 @Component({
@@ -68,14 +64,12 @@ interface DailyHistory {
             </div>
           }
           <div class="header-actions">
-            <button class="btn-icon" (click)="refreshFromTasks()" [disabled]="!isEditableDate()" title="Atualizar das tarefas">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                <path d="M3 3v5h5"/>
-                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-                <path d="M16 16h5v5"/>
-              </svg>
-            </button>
+            @if (isEditableDate()) {
+              <label class="include-tasks-toggle">
+                <input type="checkbox" [checked]="includeTasksInReport()" (change)="toggleIncludeTasks($event)">
+                <span>Incluir tarefas no report</span>
+              </label>
+            }
             <button class="btn-copy" (click)="copyReport()" [disabled]="!hasContent()">
               @if (copied()) {
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -266,7 +260,21 @@ interface DailyHistory {
 
     .header-actions {
       display: flex;
-      gap: 0.5rem;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .include-tasks-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      font-size: 0.8125rem;
+      color: #6b7280;
+      cursor: pointer;
+      user-select: none;
+    }
+    .include-tasks-toggle input {
+      cursor: pointer;
     }
     
     /* Seletor de datas */
@@ -708,11 +716,15 @@ interface DailyHistory {
 })
 export class DailyReportComponent implements OnInit {
   private demandService = inject(DemandService);
+  private authService = inject(AuthService);
+  private dailyReportService = inject(DailyReportService);
 
   demands = this.demandService.demands;
   copied = signal(false);
   editingId = signal<string | null>(null);
   newComment = signal('');
+  // Se true, o report inclui a seção de tarefas; CORE são sempre as observações
+  includeTasksInReport = signal(true);
 
   // Histórico de dailies (máximo 3 dias)
   dailyHistory = signal<DailyEntry[]>([]);
@@ -730,9 +742,9 @@ export class DailyReportComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.loadFromStorage();
-    this.loadSelectedDateData();
-    this.refreshFromTasks();
+    this.loadFromStorage().then(() => {
+      this.loadSelectedDateData();
+    });
   }
   
   // Retorna a data alvo (amanhã) - quando você vai reportar na daily
@@ -852,38 +864,6 @@ export class DailyReportComponent implements OnInit {
     return result.sort((a, b) => a.sistema.localeCompare(b.sistema));
   });
 
-  refreshFromTasks(): void {
-    const oneDayAgo = new Date();
-    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-
-    const newItems: ReportItem[] = [];
-
-    this.demands().forEach(demand => {
-      const sistema = demand.customFields.find(f => f.name === 'Sistema')?.value || 'Outros';
-
-      demand.tasks.forEach(task => {
-        if (task.completed && demand.updatedAt >= oneDayAgo) {
-          const exists = this.reportItems().some(
-            i => i.demandCode === demand.code && i.text === task.title
-          );
-
-          if (!exists) {
-            newItems.push({
-              id: this.generateId(),
-              text: task.title,
-              sistema,
-              demandCode: demand.code
-            });
-          }
-        }
-      });
-    });
-
-    const existing = this.reportItems();
-    this.reportItems.set([...existing, ...newItems]);
-    this.saveToStorage();
-  }
-
   // Edição de tarefas
   saveEdit(event: Event, item: ReportItem): void {
     const input = event.target as HTMLInputElement;
@@ -940,18 +920,36 @@ export class DailyReportComponent implements OnInit {
     this.saveToStorage();
   }
 
+  toggleIncludeTasks(event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.includeTasksInReport.set(checked);
+    this.saveToStorage();
+  }
+
   generateReportText(): string {
     const groups = this.groupedReports();
     const commentsList = this.comments();
+    const includeTasks = this.includeTasksInReport();
 
-    if (groups.length === 0 && commentsList.length === 0) {
+    const hasTasks = includeTasks && groups.length > 0;
+    if (commentsList.length === 0 && !hasTasks) {
       return '📋 Daily Report\n\nNenhuma atividade registrada.';
     }
 
     let report = `📋 Daily Report - ${this.selectedDateFormatted()}\n`;
     report += `${'─'.repeat(40)}\n\n`;
 
-    if (groups.length > 0) {
+    // CORE: observações primeiro (o que você mesmo inclui)
+    if (commentsList.length > 0) {
+      report += `💬 Observações\n`;
+      commentsList.forEach(comment => {
+        report += `   • ${comment.text}\n`;
+      });
+      if (hasTasks) report += '\n';
+    }
+
+    // Tarefas só se você optar por incluir
+    if (hasTasks) {
       groups.forEach(group => {
         report += `📦 ${group.sistema}\n`;
         group.demands.forEach(demand => {
@@ -961,13 +959,6 @@ export class DailyReportComponent implements OnInit {
           });
         });
         report += '\n';
-      });
-    }
-
-    if (commentsList.length > 0) {
-      report += `💬 Observações\n`;
-      commentsList.forEach(comment => {
-        report += `   • ${comment.text}\n`;
       });
     }
 
@@ -991,120 +982,76 @@ export class DailyReportComponent implements OnInit {
     return Math.random().toString(36).substring(2, 15);
   }
 
-  private saveToStorage(): void {
+  private async saveToStorage(): Promise<void> {
     const targetDate = this.getTargetDate();
     const workDate = this.getWorkDate();
-    
-    // Atualiza ou cria a entrada para a data alvo
-    const history = [...this.dailyHistory()];
-    const existingIndex = history.findIndex(e => e.targetDate === targetDate);
-    
     const newEntry: DailyEntry = {
       targetDate,
       workDate,
       reportItems: this.reportItems(),
-      comments: this.comments()
+      comments: this.comments(),
+      includeTasksInReport: this.includeTasksInReport()
     };
-    
-    if (existingIndex >= 0) {
-      history[existingIndex] = newEntry;
-    } else {
-      history.push(newEntry);
+
+    const user = this.authService.user();
+    if (!user) return;
+
+    try {
+      await this.dailyReportService.save(user.uid, newEntry);
+      const entries = await this.dailyReportService.load(user.uid);
+      this.dailyHistory.set(entries);
+    } catch (err) {
+      console.error('Erro ao salvar daily no Firestore:', err);
     }
-    
-    // Remove entradas com mais de 3 dias
-    const threeDaysAgo = new Date();
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-    
-    const filteredHistory = history.filter(entry => {
-      const entryDate = new Date(entry.targetDate);
-      return entryDate >= threeDaysAgo;
-    });
-    
-    // Mantém no máximo 3 entradas (as mais recentes)
-    const sortedHistory = filteredHistory
-      .sort((a, b) => new Date(b.targetDate).getTime() - new Date(a.targetDate).getTime())
-      .slice(0, 3);
-    
-    this.dailyHistory.set(sortedHistory);
-    
-    localStorage.setItem('dailyHistory', JSON.stringify({ entries: sortedHistory }));
   }
 
-  private loadFromStorage(): void {
-    // Tenta carregar o novo formato (dailyHistory)
-    const storedHistory = localStorage.getItem('dailyHistory');
-    if (storedHistory) {
-      try {
-        const data: DailyHistory = JSON.parse(storedHistory);
-        if (data.entries && Array.isArray(data.entries)) {
-          // Limpa entradas antigas (mais de 3 dias)
-          const threeDaysAgo = new Date();
-          threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-          
-          const validEntries = data.entries.filter(entry => {
-            const entryDate = new Date(entry.targetDate);
-            return entryDate >= threeDaysAgo;
-          });
-          
-          this.dailyHistory.set(validEntries);
-          
-          // Define a data selecionada como a mais relevante
-          // Prioridade: hoje (para reportar) > amanhã (para editar)
-          const today = new Date().toDateString();
-          const tomorrow = this.getTargetDate();
-          
-          const todayEntry = validEntries.find(e => e.targetDate === today);
-          const tomorrowEntry = validEntries.find(e => e.targetDate === tomorrow);
-          
-          if (todayEntry) {
-            this.selectedDate.set(today);
-          } else if (tomorrowEntry) {
-            this.selectedDate.set(tomorrow);
-          } else if (validEntries.length > 0) {
-            // Seleciona a entrada mais recente
-            const sorted = [...validEntries].sort((a, b) => 
-              new Date(b.targetDate).getTime() - new Date(a.targetDate).getTime()
-            );
-            this.selectedDate.set(sorted[0].targetDate);
-          } else {
-            // Nenhuma entrada, usa amanhã como padrão
-            this.selectedDate.set(tomorrow);
-          }
-          
-          return;
-        }
-      } catch {
-        // Ignore invalid data
-      }
+  /** Aguarda o auth estar pronto antes de carregar do Firestore. */
+  private async waitForAuthReady(): Promise<void> {
+    const maxWait = 5000;
+    const step = 50;
+    let elapsed = 0;
+    while (this.authService.loading() && elapsed < maxWait) {
+      await new Promise<void>(r => setTimeout(r, step));
+      elapsed += step;
     }
-    
-    // Migração: tenta carregar o formato antigo (dailyReport)
-    const storedOld = localStorage.getItem('dailyReport');
-    if (storedOld) {
-      try {
-        const data = JSON.parse(storedOld);
-        if (data.date && data.reportItems) {
-          // Converte para o novo formato
-          // O formato antigo usa data de hoje, mas na nova lógica seria para amanhã
-          const targetDate = this.getTargetDate();
-          const entry: DailyEntry = {
-            targetDate,
-            workDate: data.date,
-            reportItems: data.reportItems || [],
-            comments: data.comments || []
-          };
-          
-          this.dailyHistory.set([entry]);
-          this.selectedDate.set(targetDate);
-          
-          // Migra para o novo formato e remove o antigo
-          localStorage.setItem('dailyHistory', JSON.stringify({ entries: [entry] }));
-          localStorage.removeItem('dailyReport');
-        }
-      } catch {
-        // Ignore invalid data
-      }
+  }
+
+  private async loadFromStorage(): Promise<void> {
+    await this.waitForAuthReady();
+    const user = this.authService.user();
+    if (!user) {
+      this.selectedDate.set(this.getTargetDate());
+      return;
+    }
+
+    try {
+      const entries = await this.dailyReportService.load(user.uid);
+      this.dailyHistory.set(entries);
+
+      const tomorrow = this.getTargetDate();
+      const tomorrowEntry = entries.find(e => e.targetDate === tomorrow);
+      this.includeTasksInReport.set(tomorrowEntry?.includeTasksInReport ?? true);
+
+      this.applySelectedDate(entries);
+    } catch (err) {
+      console.error('Erro ao carregar daily do Firestore:', err);
+      this.selectedDate.set(this.getTargetDate());
+    }
+  }
+
+  private applySelectedDate(entries: DailyEntry[]): void {
+    const today = new Date().toDateString();
+    const tomorrow = this.getTargetDate();
+    const todayEntry = entries.find(e => e.targetDate === today);
+    const tomorrowEntry = entries.find(e => e.targetDate === tomorrow);
+    if (todayEntry) {
+      this.selectedDate.set(today);
+    } else if (tomorrowEntry) {
+      this.selectedDate.set(tomorrow);
+    } else if (entries.length > 0) {
+      this.selectedDate.set(entries[0].targetDate);
+    } else {
+      this.selectedDate.set(tomorrow);
     }
   }
 }
