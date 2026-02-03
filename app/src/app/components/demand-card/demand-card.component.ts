@@ -14,6 +14,9 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
         <div class="header-top">
           <span class="demand-code">{{ demand.code }}</span>
           <div class="badges">
+            @if (getSistemaValue()) {
+              <div class="sistema-badge">{{ getSistemaValue() }}</div>
+            }
             <div class="priority-badge" [style.background]="getPriorityConfig().bgColor" [style.color]="getPriorityConfig().color">
               {{ getPriorityConfig().label }}
             </div>
@@ -41,10 +44,10 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
           </div>
         </div>
         
-        <!-- Custom Fields/Badges -->
-        @if (demand.customFields.length > 0) {
+        <!-- Custom Fields/Badges (excluindo Sistema - exibido no topo como badge) -->
+        @if (getNonSistemaFields().length > 0) {
           <div class="custom-badges">
-            @for (field of demand.customFields; track field.id) {
+            @for (field of getNonSistemaFields(); track field.id) {
               <div class="custom-badge-wrapper">
                 @if (editingFieldId() === field.id) {
                   <input 
@@ -256,6 +259,16 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
     .badges {
       display: flex;
       gap: 0.5rem;
+    }
+
+    .sistema-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #7c3aed;
+      background: #f3e8ff;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      border: 1px solid rgba(124, 58, 237, 0.3);
     }
 
     .priority-badge {
@@ -745,6 +758,15 @@ export class DemandCardComponent {
 
   isDefaultField(field: CustomField): boolean {
     return this.defaultFieldNames.includes(field.name);
+  }
+
+  getSistemaValue(): string {
+    const field = this.demand.customFields.find(f => f.name === 'Sistema');
+    return field?.value?.trim() || '';
+  }
+
+  getNonSistemaFields(): CustomField[] {
+    return this.demand.customFields.filter(f => f.name !== 'Sistema');
   }
 
   async changeStatus(status: DemandStatus): Promise<void> {

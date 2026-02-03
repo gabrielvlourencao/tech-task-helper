@@ -71,6 +71,39 @@ import { HeaderComponent } from '../../components/header/header.component';
           </div>
         </section>
 
+        <!-- Current Task Section - Executando agora (em destaque no início) -->
+        @if (currentTask()) {
+          <section class="current-task-section">
+            <div class="current-task-content">
+              <div class="current-task-indicator">
+                <span class="pulse-dot"></span>
+                <span class="label">Executando agora</span>
+              </div>
+              <div class="current-task-info">
+                <span class="task-demand-code">{{ currentTask()!.demand.code }}</span>
+                <h3 class="task-title">{{ currentTask()!.task.title }}</h3>
+                <p class="task-demand-title">{{ currentTask()!.demand.title }}</p>
+              </div>
+              <div class="current-task-actions">
+                <button 
+                  type="button"
+                  class="btn-complete-task" 
+                  (click)="completeCurrentTask()"
+                  title="Concluir tarefa">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                  Concluir
+                </button>
+                <a routerLink="/demandas" class="btn-go-task">
+                  Ver demanda →
+                </a>
+              </div>
+            </div>
+          </section>
+        }
+
         <!-- Tarefas por Status -->
         <section class="priority-tasks-section">
           <div class="section-header">
@@ -105,6 +138,13 @@ import { HeaderComponent } from '../../components/header/header.component';
                     <div class="status-group-tasks">
                       @for (item of group.tasks; track item.task.id) {
                         <div class="priority-task-item" [class.in-progress]="item.task.inProgress">
+                          <label class="checkbox-container-mini">
+                            <input 
+                              type="checkbox" 
+                              [checked]="false"
+                              (change)="togglePendingTask(item.demandId, item.task.id)">
+                            <span class="checkmark-mini"></span>
+                          </label>
                           <div class="task-info">
                             <div class="task-meta">
                               <span class="task-demand-code">{{ item.demandCode }}</span>
@@ -120,11 +160,30 @@ import { HeaderComponent } from '../../components/header/header.component';
                             </div>
                             <span class="task-title-text">{{ item.task.title }}</span>
                           </div>
-                          <a routerLink="/demandas" class="btn-go-task-mini" title="Ver demanda">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                              <path d="m9 18 6-6-6-6"/>
-                            </svg>
-                          </a>
+                          <div class="task-actions-mini">
+                            <button 
+                              type="button"
+                              class="btn-icon-mini btn-progress-mini" 
+                              [class.active]="item.task.inProgress"
+                              (click)="setPendingTaskInProgress(item.demandId, item.task.id)" 
+                              [title]="item.task.inProgress ? 'Parar execução' : 'Executar agora'">
+                              @if (item.task.inProgress) {
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                  <rect x="6" y="4" width="4" height="16"></rect>
+                                  <rect x="14" y="4" width="4" height="16"></rect>
+                                </svg>
+                              } @else {
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                </svg>
+                              }
+                            </button>
+                            <a routerLink="/demandas" class="btn-go-task-mini" title="Ver demanda">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m9 18 6-6-6-6"/>
+                              </svg>
+                            </a>
+                          </div>
                         </div>
                       }
                     </div>
@@ -144,90 +203,7 @@ import { HeaderComponent } from '../../components/header/header.component';
           }
         </section>
 
-        <!-- Current Task Section -->
-        @if (currentTask()) {
-          <section class="current-task-section">
-            <div class="current-task-content">
-              <div class="current-task-indicator">
-                <span class="pulse-dot"></span>
-                <span class="label">Executando agora</span>
-              </div>
-              <div class="current-task-info">
-                <span class="task-demand-code">{{ currentTask()!.demand.code }}</span>
-                <h3 class="task-title">{{ currentTask()!.task.title }}</h3>
-                <p class="task-demand-title">{{ currentTask()!.demand.title }}</p>
-              </div>
-              <a routerLink="/demandas" class="btn-go-task">
-                Ver demanda →
-              </a>
-            </div>
-          </section>
-        }
-
         <div class="content-grid">
-          <!-- Daily Report Section -->
-          <section class="daily-report-section">
-            <div class="section-header">
-              <h2>
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                </svg>
-                Report para Daily
-                <span class="daily-target-date">{{ tomorrowFormatted() }}</span>
-              </h2>
-              <div class="report-actions">
-                <a routerLink="/daily-report" class="btn-edit-report">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 20h9"/>
-                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
-                  </svg>
-                  Editar
-                </a>
-                <button class="btn-copy" (click)="copyDailyReport()" [disabled]="!dailyReport()">
-                  @if (copied()) {
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                    Copiado!
-                  } @else {
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
-                    Copiar
-                  }
-                </button>
-              </div>
-            </div>
-            <div class="report-content">
-              @if (groupedCompletedTasks().length > 0) {
-                <div class="report-grouped">
-                  @for (group of groupedCompletedTasks(); track group.sistema) {
-                    <div class="report-system-group">
-                      <span class="system-label">{{ group.sistema }}</span>
-                      @for (demand of group.demands; track demand.code) {
-                        <div class="report-demand">
-                          <span class="demand-code-mini">{{ demand.code }}</span>
-                          <span class="task-count">{{ demand.tasks.length }} tarefa(s)</span>
-                        </div>
-                      }
-                    </div>
-                  }
-                </div>
-                <a routerLink="/daily-report" class="btn-view-full">Ver report completo →</a>
-              } @else {
-                <div class="empty-report">
-                  <p>Nenhuma tarefa concluída nas últimas 24h</p>
-                  <span>Complete tarefas para gerar o report</span>
-                  <a routerLink="/daily-report" class="btn-add-manual">Adicionar item manual</a>
-                </div>
-              }
-            </div>
-          </section>
-
           <!-- Status Overview -->
           <section class="status-overview-section">
             <div class="section-header">
@@ -539,6 +515,88 @@ import { HeaderComponent } from '../../components/header/header.component';
       border: 1px solid rgba(102, 126, 234, 0.3);
     }
 
+    .checkbox-container-mini {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .checkbox-container-mini input {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .checkmark-mini {
+      position: relative;
+      width: 18px;
+      height: 18px;
+      border: 2px solid #d1d5db;
+      border-radius: 5px;
+      transition: all 0.2s ease;
+    }
+
+    .checkbox-container-mini input:checked ~ .checkmark-mini {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-color: #667eea;
+    }
+
+    .checkbox-container-mini input:checked ~ .checkmark-mini::after {
+      content: '';
+      position: absolute;
+      left: 6px;
+      top: 2px;
+      width: 5px;
+      height: 10px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    .task-actions-mini {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      flex-shrink: 0;
+    }
+
+    .btn-icon-mini {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.375rem;
+      background: transparent;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      color: #6b7280;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-icon-mini:hover {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .btn-progress-mini:hover {
+      border-color: #667eea;
+      color: #667eea;
+      background: #eef2ff;
+    }
+
+    .btn-progress-mini.active {
+      color: #667eea;
+      background: #eef2ff;
+      border-color: rgba(102, 126, 234, 0.3);
+    }
+
     .task-sistema-badge {
       font-size: 0.65rem;
       font-weight: 600;
@@ -799,6 +857,33 @@ import { HeaderComponent } from '../../components/header/header.component';
       margin: 0;
     }
 
+    .current-task-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-shrink: 0;
+    }
+
+    .btn-complete-task {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.625rem 1.25rem;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border: none;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-complete-task:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    }
+
     .btn-go-task {
       padding: 0.625rem 1.25rem;
       background: white;
@@ -821,13 +906,12 @@ import { HeaderComponent } from '../../components/header/header.component';
     /* Content Grid */
     .content-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 1.5rem;
       margin-bottom: 2rem;
     }
 
-    /* Daily Report Section */
-    .daily-report-section, .status-overview-section, .recent-section {
+    .status-overview-section, .recent-section {
       background: white;
       border-radius: 16px;
       padding: 1.5rem;
@@ -854,69 +938,6 @@ import { HeaderComponent } from '../../components/header/header.component';
     .section-header h2 svg {
       color: #667eea;
     }
-    
-    .daily-target-date {
-      background: #d1fae5;
-      color: #059669;
-      padding: 0.125rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.7rem;
-      font-weight: 500;
-      margin-left: 0.25rem;
-    }
-
-    .report-actions {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .btn-edit-report {
-      display: flex;
-      align-items: center;
-      gap: 0.375rem;
-      padding: 0.5rem 0.75rem;
-      background: white;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      color: #6b7280;
-      font-size: 0.875rem;
-      font-weight: 500;
-      text-decoration: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .btn-edit-report:hover {
-      background: #f3f4f6;
-      color: #667eea;
-      border-color: #667eea;
-    }
-
-    .btn-copy {
-      display: flex;
-      align-items: center;
-      gap: 0.375rem;
-      padding: 0.5rem 1rem;
-      background: #eef2ff;
-      border: none;
-      border-radius: 8px;
-      color: #667eea;
-      font-size: 0.875rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .btn-copy:hover:not(:disabled) {
-      background: #667eea;
-      color: white;
-    }
-
-    .btn-copy:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
 
     .btn-link {
       font-size: 0.875rem;
@@ -928,123 +949,6 @@ import { HeaderComponent } from '../../components/header/header.component';
 
     .btn-link:hover {
       color: #764ba2;
-    }
-
-    .report-content {
-      background: #f9fafb;
-      border-radius: 12px;
-      padding: 1rem;
-      min-height: 150px;
-    }
-
-    .report-text {
-      margin: 0;
-      font-family: 'SF Mono', 'Consolas', monospace;
-      font-size: 0.85rem;
-      color: #374151;
-      white-space: pre-wrap;
-      line-height: 1.6;
-    }
-
-    .report-grouped {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
-    }
-
-    .report-system-group {
-      background: #f9fafb;
-      border-radius: 8px;
-      padding: 0.75rem;
-    }
-
-    .system-label {
-      display: inline-block;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: #7c3aed;
-      background: #f3e8ff;
-      padding: 0.125rem 0.5rem;
-      border-radius: 4px;
-      margin-bottom: 0.5rem;
-    }
-
-    .report-demand {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.25rem 0;
-      margin-left: 0.5rem;
-    }
-
-    .demand-code-mini {
-      font-family: 'SF Mono', 'Consolas', monospace;
-      font-size: 0.7rem;
-      font-weight: 600;
-      color: #667eea;
-      background: #eef2ff;
-      padding: 0.125rem 0.375rem;
-      border-radius: 4px;
-    }
-
-    .task-count {
-      font-size: 0.75rem;
-      color: #6b7280;
-    }
-
-    .btn-view-full {
-      display: block;
-      text-align: center;
-      padding: 0.5rem;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: #667eea;
-      text-decoration: none;
-      border-top: 1px solid #e5e7eb;
-      margin-top: 0.5rem;
-      transition: color 0.2s ease;
-    }
-
-    .btn-view-full:hover {
-      color: #764ba2;
-    }
-
-    .btn-add-manual {
-      display: inline-block;
-      margin-top: 0.75rem;
-      padding: 0.5rem 1rem;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: #667eea;
-      background: #eef2ff;
-      border-radius: 8px;
-      text-decoration: none;
-      transition: all 0.2s ease;
-    }
-
-    .btn-add-manual:hover {
-      background: #667eea;
-      color: white;
-    }
-
-    .empty-report {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 120px;
-      color: #9ca3af;
-      text-align: center;
-    }
-
-    .empty-report p {
-      margin: 0;
-      font-weight: 500;
-    }
-
-    .empty-report span {
-      font-size: 0.875rem;
     }
 
     /* Status Overview */
@@ -1276,9 +1180,15 @@ import { HeaderComponent } from '../../components/header/header.component';
         text-align: center;
       }
 
+      .current-task-actions {
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .btn-complete-task,
       .btn-go-task {
         width: 100%;
-        text-align: center;
+        justify-content: center;
       }
     }
   `]
@@ -1289,7 +1199,6 @@ export class DashboardComponent {
 
   user = this.authService.user;
   demands = this.demandService.demands;
-  copied = signal(false);
   expandedStatuses = signal<Set<DemandStatus>>(new Set(['bloqueado', 'desenvolvimento', 'homologacao']));
 
   firstName = computed(() => {
@@ -1314,6 +1223,7 @@ export class DashboardComponent {
   tasksByStatus = computed(() => {
     const grouped = new Map<DemandStatus, { 
       task: Task; 
+      demandId: string;
       demandCode: string; 
       demandTitle: string;
       sistema: string;
@@ -1332,6 +1242,7 @@ export class DashboardComponent {
             }
             grouped.get(demand.status)!.push({
               task,
+              demandId: demand.id,
               demandCode: demand.code,
               demandTitle: demand.title,
               sistema
@@ -1343,7 +1254,7 @@ export class DashboardComponent {
     const result: { 
       status: DemandStatus; 
       statusConfig: typeof STATUS_CONFIG[DemandStatus];
-      tasks: { task: Task; demandCode: string; demandTitle: string; sistema: string }[];
+      tasks: { task: Task; demandId: string; demandCode: string; demandTitle: string; sistema: string }[];
     }[] = [];
 
     grouped.forEach((tasks, status) => {
@@ -1389,88 +1300,6 @@ export class DashboardComponent {
       .slice(0, 6);
   });
 
-  // Tarefas concluídas nas últimas 24h (baseado em quando a demanda foi atualizada)
-  recentCompletedTasks = computed(() => {
-    const oneDayAgo = new Date();
-    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-
-    const tasks: { task: Task; demandCode: string; demandTitle: string; sistema: string }[] = [];
-
-    this.demands().forEach(demand => {
-      const sistema = demand.customFields.find(f => f.name === 'Sistema')?.value || 'Sem Sistema';
-      
-      demand.tasks.forEach(task => {
-        if (task.completed) {
-          // Se a demanda foi atualizada nas últimas 24h, consideramos as tarefas concluídas
-          if (demand.updatedAt >= oneDayAgo) {
-            tasks.push({
-              task,
-              demandCode: demand.code,
-              demandTitle: demand.title,
-              sistema
-            });
-          }
-        }
-      });
-    });
-
-    return tasks;
-  });
-
-  // Agrupa tarefas por Sistema e Demanda para exibição no dashboard
-  groupedCompletedTasks = computed(() => {
-    const tasks = this.recentCompletedTasks();
-    const grouped = new Map<string, Map<string, { code: string; title: string; tasks: Task[] }>>();
-
-    tasks.forEach(item => {
-      if (!grouped.has(item.sistema)) {
-        grouped.set(item.sistema, new Map());
-      }
-
-      const sistemaDemands = grouped.get(item.sistema)!;
-      if (!sistemaDemands.has(item.demandCode)) {
-        sistemaDemands.set(item.demandCode, {
-          code: item.demandCode,
-          title: item.demandTitle,
-          tasks: []
-        });
-      }
-
-      sistemaDemands.get(item.demandCode)!.tasks.push(item.task);
-    });
-
-    const result: { sistema: string; demands: { code: string; title: string; tasks: Task[] }[] }[] = [];
-    grouped.forEach((demands, sistema) => {
-      result.push({
-        sistema,
-        demands: Array.from(demands.values())
-      });
-    });
-
-    return result.sort((a, b) => a.sistema.localeCompare(b.sistema));
-  });
-
-  dailyReport = computed(() => {
-    const groups = this.groupedCompletedTasks();
-    if (groups.length === 0) return '';
-
-    let report = `📋 Daily Report - ${this.tomorrowFormattedLong()}\n`;
-    report += `${'─'.repeat(35)}\n\n`;
-
-    groups.forEach(group => {
-      report += `📦 ${group.sistema}\n`;
-      group.demands.forEach(demand => {
-        report += `   ${demand.code}\n`;
-        demand.tasks.forEach(task => {
-          report += `   • ${task.title}\n`;
-        });
-      });
-      report += '\n';
-    });
-
-    return report.trim();
-  });
-
   todayFormatted = computed(() => {
     const options: Intl.DateTimeFormatOptions = { 
       weekday: 'long', 
@@ -1481,25 +1310,6 @@ export class DashboardComponent {
     return new Date().toLocaleDateString('pt-BR', options);
   });
   
-  // Data de amanhã formatada curta (dd/mm) para o header
-  tomorrowFormatted = computed(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-  });
-  
-  // Data de amanhã formatada longa para o report
-  tomorrowFormattedLong = computed(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const options: Intl.DateTimeFormatOptions = { 
-      weekday: 'long', 
-      day: 'numeric', 
-      month: 'long'
-    };
-    return tomorrow.toLocaleDateString('pt-BR', options);
-  });
-
   getGreeting(): string {
     const hour = new Date().getHours();
     if (hour < 12) return 'Bom dia';
@@ -1545,16 +1355,17 @@ export class DashboardComponent {
     return demand.tasks.filter(t => t.completed).length;
   }
 
-  async copyDailyReport(): Promise<void> {
-    const report = this.dailyReport();
-    if (!report) return;
+  async completeCurrentTask(): Promise<void> {
+    const current = this.currentTask();
+    if (!current) return;
+    await this.demandService.toggleTask(current.demand.id, current.task.id);
+  }
 
-    try {
-      await navigator.clipboard.writeText(report);
-      this.copied.set(true);
-      setTimeout(() => this.copied.set(false), 2000);
-    } catch (error) {
-      console.error('Failed to copy:', error);
-    }
+  async togglePendingTask(demandId: string, taskId: string): Promise<void> {
+    await this.demandService.toggleTask(demandId, taskId);
+  }
+
+  async setPendingTaskInProgress(demandId: string, taskId: string): Promise<void> {
+    await this.demandService.setTaskInProgress(demandId, taskId);
   }
 }
