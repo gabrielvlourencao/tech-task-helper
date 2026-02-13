@@ -259,13 +259,17 @@ type DisplayMode = 'grid' | 'list';
                     <span class="col-title">{{ demand.title }}</span>
                     <span class="col-sistema">{{ getSistemaValue(demand) || '-' }}</span>
                     <span class="col-consultoria">{{ getConsultoriaValue(demand) || '-' }}</span>
-                    <span class="col-status">
-                      <span 
-                        class="status-badge" 
-                        [style.background]="getStatusConfig(demand.status).bgColor"
-                        [style.color]="getStatusConfig(demand.status).color">
-                        {{ getStatusConfig(demand.status).icon }} {{ getStatusConfig(demand.status).label }}
-                      </span>
+                    <span class="col-status" (click)="$event.stopPropagation()">
+                      <select 
+                        class="status-select"
+                        [ngModel]="demand.status"
+                        (ngModelChange)="changeStatus(demand.id, $event)"
+                        (click)="$event.stopPropagation()"
+                        aria-label="Alterar status da demanda {{ demand.code }}">
+                        @for (statusOption of statusOptions(); track statusOption.value) {
+                          <option [value]="statusOption.value">{{ statusOption.config.icon }} {{ statusOption.config.label }}</option>
+                        }
+                      </select>
                     </span>
                     <span class="col-priority">
                       <span 
@@ -796,6 +800,30 @@ type DisplayMode = 'grid' | 'list';
       white-space: nowrap;
     }
 
+    .status-select {
+      width: 100%;
+      max-width: 130px;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 500;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: white;
+      color: #374151;
+      cursor: pointer;
+      transition: border-color 0.2s ease;
+    }
+
+    .status-select:hover {
+      border-color: #667eea;
+    }
+
+    .status-select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+    }
+
     .priority-badge {
       font-size: 0.65rem;
       font-weight: 600;
@@ -1286,7 +1314,7 @@ export class DemandsComponent {
       filtered = filtered.filter(d => d.status === statusFilter);
     }
 
-    // Ordenar por prioridade (crítica primeiro)
+    // Ordenação apenas por prioridade
     return filtered.sort((a, b) => {
       const priorityA = PRIORITY_ORDER[a.priority] || 0;
       const priorityB = PRIORITY_ORDER[b.priority] || 0;
@@ -1322,6 +1350,10 @@ export class DemandsComponent {
 
   getStatusConfig(status: DemandStatus) {
     return STATUS_CONFIG[status] || STATUS_CONFIG['setup'];
+  }
+
+  async changeStatus(demandId: string, status: DemandStatus): Promise<void> {
+    await this.demandService.updateStatus(demandId, status);
   }
 
   getPriorityConfig(priority: Demand['priority']) {
