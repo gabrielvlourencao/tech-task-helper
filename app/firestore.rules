@@ -1,4 +1,6 @@
 rules_version = '2';
+// Regras: firebase deploy --only firestore:rules
+// Índices: firebase deploy --only firestore:indexes
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -15,6 +17,13 @@ service cloud.firestore {
 
     // Daily reports (últimos 3 dias por usuário)
     match /dailyReports/{reportId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Documentos de release (deploy) vinculados à demanda
+    match /releaseDocs/{docId} {
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;

@@ -16,7 +16,7 @@ import { AuthService } from '../../core';
               <path d="M2 12l10 5 10-5"/>
             </svg>
           </div>
-          <h1>Tech Task Helper</h1>
+          <h1>Portal do Tech lead</h1>
           <p class="subtitle">Gerencie suas demandas de forma simples</p>
         </div>
 

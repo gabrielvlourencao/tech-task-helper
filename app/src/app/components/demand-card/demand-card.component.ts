@@ -1,7 +1,9 @@
 import { Component, Input, Output, EventEmitter, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Demand, Task, PRIORITY_CONFIG, STATUS_CONFIG, DemandService, CustomField, DemandStatus } from '../../core';
+import { Router } from '@angular/router';
+import { Demand, Task, PRIORITY_CONFIG, STATUS_CONFIG, DemandService, ReleaseDocumentService, CustomField, DemandStatus } from '../../core';
+import { RELEASE_DOC_TASK_TITLE } from '../../core/models/release-document.model';
 import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-modal.component';
 
 @Component({
@@ -124,7 +126,16 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
                   }
                   {{ task.title }}
                 </span>
-                @if (task.link) {
+                @if (task.title === releaseDocTaskTitle) {
+                  <button type="button" class="task-link task-link-internal" (click)="openReleaseDoc($event)" title="Abrir documento de release">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                    </svg>
+                  </button>
+                } @else if (task.link) {
                   <a 
                     [href]="task.link" 
                     target="_blank" 
@@ -590,6 +601,12 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
       color: #4f46e5;
     }
 
+    .task-link-internal {
+      border: none;
+      cursor: pointer;
+      background: transparent;
+    }
+
     .task-edit-input {
       flex: 1;
       font-size: 0.9rem;
@@ -731,6 +748,9 @@ export class DemandCardComponent {
   @Output() onDelete = new EventEmitter<string>();
 
   private demandService = inject(DemandService);
+  private router = inject(Router);
+  private releaseDocService = inject(ReleaseDocumentService);
+  readonly releaseDocTaskTitle = RELEASE_DOC_TASK_TITLE;
 
   newTaskTitle = signal('');
   editingTaskId = signal<string | null>(null);
@@ -827,5 +847,16 @@ export class DemandCardComponent {
 
   async removeCustomField(fieldId: string): Promise<void> {
     await this.demandService.deleteCustomField(this.demand.id, fieldId);
+  }
+
+  openReleaseDoc(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const existing = this.releaseDocService.getByDemandId(this.demand.id);
+    if (existing) {
+      this.router.navigate(['/documentos-release', existing.id]);
+    } else {
+      this.router.navigate(['/documentos-release/novo'], { queryParams: { demandId: this.demand.id } });
+    }
   }
 }

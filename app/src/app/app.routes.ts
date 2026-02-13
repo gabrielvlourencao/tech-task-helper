@@ -18,6 +18,21 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'documentos-release',
+    loadComponent: () => import('./pages/release-documents/release-documents.component').then(m => m.ReleaseDocumentsComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'documentos-release/novo',
+    loadComponent: () => import('./pages/release-document-editor/release-document-editor.component').then(m => m.ReleaseDocumentEditorComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'documentos-release/:id',
+    loadComponent: () => import('./pages/release-document-editor/release-document-editor.component').then(m => m.ReleaseDocumentEditorComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'login',
     loadComponent: () => import('./pages/login/login.component').then(m => m.LoginComponent),
     canActivate: [publicGuard]

@@ -18,7 +18,7 @@ import { AuthService } from '../../core';
                 <path d="M2 12l10 5 10-5"/>
               </svg>
             </div>
-            <span class="logo-text">Tech Task Helper</span>
+            <span class="logo-text">Portal do Tech lead</span>
           </a>
           
           <nav class="nav-links">
@@ -46,6 +46,15 @@ import { AuthService } from '../../core';
                 <line x1="9" y1="14" x2="15" y2="14"></line>
               </svg>
               <span>Daily</span>
+            </a>
+            <a routerLink="/documentos-release" routerLinkActive="active" class="nav-link">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+              <span>Documentos</span>
             </a>
           </nav>
         </div>

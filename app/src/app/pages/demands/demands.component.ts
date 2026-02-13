@@ -1,7 +1,9 @@
 import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AuthService, DemandService, Demand, Task, ViewMode, PRIORITY_ORDER, PRIORITY_CONFIG, STATUS_CONFIG, DemandStatus } from '../../core';
+import { Router } from '@angular/router';
+import { AuthService, DemandService, Demand, Task, ViewMode, PRIORITY_ORDER, PRIORITY_CONFIG, STATUS_CONFIG, DemandStatus, ReleaseDocumentService } from '../../core';
+import { RELEASE_DOC_TASK_TITLE } from '../../core/models/release-document.model';
 import { HeaderComponent } from '../../components/header/header.component';
 import { DemandCardComponent } from '../../components/demand-card/demand-card.component';
 import { DemandModalComponent } from '../../components/demand-modal/demand-modal.component';
@@ -337,6 +339,16 @@ type DisplayMode = 'grid' | 'list';
                                   }
                                   {{ task.title }}
                                 </span>
+                              }
+                              @if (task.title === releaseDocTaskTitle) {
+                                <button type="button" class="btn-icon-mini task-release-doc" (click)="openReleaseDoc(demand, $event)" title="Abrir documento de release">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                  </svg>
+                                </button>
                               }
 
                               @if (!task.completed) {
@@ -1201,6 +1213,9 @@ type DisplayMode = 'grid' | 'list';
 export class DemandsComponent {
   private authService = inject(AuthService);
   private demandService = inject(DemandService);
+  private router = inject(Router);
+  private releaseDocService = inject(ReleaseDocumentService);
+  readonly releaseDocTaskTitle = RELEASE_DOC_TASK_TITLE;
 
   demands = this.demandService.demands;
   loading = this.demandService.loading;
@@ -1445,6 +1460,17 @@ export class DemandsComponent {
       } catch (error) {
         console.error('Error deleting demand:', error);
       }
+    }
+  }
+
+  openReleaseDoc(demand: Demand, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const existing = this.releaseDocService.getByDemandId(demand.id);
+    if (existing) {
+      this.router.navigate(['/documentos-release', existing.id]);
+    } else {
+      this.router.navigate(['/documentos-release/novo'], { queryParams: { demandId: demand.id } });
     }
   }
 }

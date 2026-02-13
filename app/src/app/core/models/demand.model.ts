@@ -59,7 +59,7 @@ export interface Demand {
 // Default tasks that every LT has
 export const DEFAULT_TASKS: Omit<Task, 'id' | 'createdAt'>[] = [
   { title: 'Mapear igualdade de Keyvaults por ambiente', completed: false, inProgress: false, order: 0 },
-  { title: 'Criar documento de release', completed: false, inProgress: false, order: 1, link: 'https://lts-releases.web.app/releases' },
+  { title: 'Criar documento de release', completed: false, inProgress: false, order: 1 },
   { title: 'Equalizar branchs', completed: false, inProgress: false, order: 2 },
 ];
 
