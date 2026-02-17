@@ -16,7 +16,11 @@ import {
 } from 'firebase/firestore';
 import { FirebaseService } from './firebase.service';
 import { AuthService } from './auth.service';
-import type { TechDocument } from '../models/tech-document.model';
+import type {
+  TechDocument,
+  TechKeyMapping,
+  TechDocumentStep
+} from '../models/tech-document.model';
 
 const COLLECTION = 'techDocs';
 
@@ -93,14 +97,51 @@ export class TechDocumentService {
 
   private mapDoc(docSnap: DocumentSnapshot): TechDocument {
     const data = docSnap.data() ?? {};
+    const keyMappings = Array.isArray(data['keyMappings'])
+      ? (data['keyMappings'] as TechKeyMapping[])
+      : [];
+    const stepsRaw = Array.isArray(data['steps']) ? data['steps'] : [];
+    const steps = stepsRaw.map(
+      (s: { id?: string; order?: number; title?: string; description?: string }, i: number) => ({
+        id: s.id ?? `step-${i}`,
+        order: typeof s.order === 'number' ? s.order : i + 1,
+        title: s.title ?? '',
+        description: s.description ?? ''
+      })
+    );
     return {
       id: docSnap.id,
       title: data['title'] ?? '',
+      summary: data['summary'] ?? '',
+      keyMappings,
+      steps,
       content: data['content'] ?? '',
       demandId: data['demandId'] ?? null,
       userId: data['userId'] ?? '',
       createdAt: (data['createdAt'] as Timestamp)?.toDate?.() ?? new Date(),
       updatedAt: (data['updatedAt'] as Timestamp)?.toDate?.() ?? new Date()
+    };
+  }
+
+  private generateId(): string {
+    return Math.random().toString(36).substring(2, 15);
+  }
+
+  createKeyMapping(): TechKeyMapping {
+    return {
+      id: this.generateId(),
+      key: '',
+      value: '',
+      ambiente: ''
+    };
+  }
+
+  createStep(order: number): TechDocumentStep {
+    return {
+      id: this.generateId(),
+      order,
+      title: '',
+      description: ''
     };
   }
 
@@ -124,6 +165,9 @@ export class TechDocumentService {
 
     const payload = {
       title: data.title ?? '',
+      summary: data.summary ?? '',
+      keyMappings: data.keyMappings ?? [],
+      steps: data.steps ?? [],
       content: data.content ?? '',
       demandId: data.demandId ?? null,
       userId: user.uid,
@@ -145,6 +189,9 @@ export class TechDocumentService {
     const ref = doc(this.firebase.firestore, COLLECTION, id);
     const clean: Record<string, unknown> = {};
     if (data.title !== undefined) clean['title'] = data.title;
+    if (data.summary !== undefined) clean['summary'] = data.summary;
+    if (data.keyMappings !== undefined) clean['keyMappings'] = data.keyMappings;
+    if (data.steps !== undefined) clean['steps'] = data.steps;
     if (data.content !== undefined) clean['content'] = data.content;
     if (data.demandId !== undefined) clean['demandId'] = data.demandId;
     clean['updatedAt'] = serverTimestamp();

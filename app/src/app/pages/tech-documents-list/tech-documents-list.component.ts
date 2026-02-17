@@ -73,8 +73,8 @@ import type { TechDocument } from '../../core/models/tech-document.model';
             </div>
             <div class="doc-card-body">
               <p class="doc-title">{{ doc.title || 'Sem título' }}</p>
-              @if (doc.content) {
-                <p class="doc-preview">{{ preview(doc.content) }}</p>
+              @if (docPreview(doc)) {
+                <p class="doc-preview">{{ docPreview(doc) }}</p>
               }
               <p class="doc-updated">Atualizado em {{ formatDate(doc.updatedAt) }}</p>
             </div>
@@ -165,6 +165,19 @@ export class TechDocumentsListComponent {
     if (!content) return '';
     const text = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     return text.length <= maxLen ? text : text.slice(0, maxLen) + '…';
+  }
+
+  /** Preview do documento: resumo, primeiro passo ou conteúdo legado */
+  docPreview(doc: TechDocument, maxLen = 120): string {
+    if (doc.summary?.trim()) return doc.summary.length <= maxLen ? doc.summary : doc.summary.slice(0, maxLen) + '…';
+    if (doc.steps?.length) {
+      const first = doc.steps.find((s) => s.title?.trim() || s.description?.trim());
+      if (first?.title?.trim()) return first.title.length <= maxLen ? first.title : first.title.slice(0, maxLen) + '…';
+      if (first?.description?.trim()) return this.preview(first.description, maxLen);
+      return doc.steps.length === 1 ? '1 passo' : `${doc.steps.length} passos`;
+    }
+    if (doc.content?.trim()) return this.preview(doc.content, maxLen);
+    return '';
   }
 
   formatDate(d: Date): string {

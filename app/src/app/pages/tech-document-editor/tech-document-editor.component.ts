@@ -3,13 +3,10 @@ import {
   inject,
   signal,
   computed,
+  effect,
   ChangeDetectionStrategy,
   OnInit,
-  OnDestroy,
-  viewChild,
-  ElementRef,
-  effect,
-  AfterViewChecked
+  OnDestroy
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -18,6 +15,9 @@ import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
 import { DemandService, TechDocumentService } from '../../core';
 import { HeaderComponent } from '../../components/header/header.component';
 import type { Demand } from '../../core/models/demand.model';
+import type { TechKeyMapping, TechDocumentStep } from '../../core/models/tech-document.model';
+
+const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
 
 @Component({
   selector: 'app-tech-document-editor',
@@ -30,15 +30,48 @@ import type { Demand } from '../../core/models/demand.model';
         <div class="print-area print-visible" [attr.aria-hidden]="false">
           <div class="print-content">
             <h1>Documento Técnico</h1>
-            <p class="print-title">{{ title }}</p>
+            <p class="print-title">{{ title || 'Sem título' }}</p>
             @if (demand()) {
               <p class="print-demand">Demanda: {{ demand()!.code }} – {{ demand()!.title }}</p>
             } @else {
               <p class="print-demand">Sem demanda vinculada</p>
             }
-            <section class="print-section">
-              <div class="print-body rich-print-body" [innerHTML]="trustedContent()"></div>
-            </section>
+            @if (summary()) {
+              <section class="print-section">
+                <h2>Resumo / Contexto</h2>
+                <p class="print-body-text">{{ summary() }}</p>
+              </section>
+            }
+            @if (hasKeyMappingsForPrint()) {
+              <section class="print-section">
+                <h2>Chaves (Keyvault / configuração)</h2>
+                <table>
+                  <thead><tr><th>Key</th><th>Value</th><th>Ambiente</th></tr></thead>
+                  <tbody>
+                    @for (row of keyMappings(); track row.id) {
+                      @if (row.key || row.value || row.ambiente) {
+                        <tr><td>{{ row.key }}</td><td>{{ row.value }}</td><td>{{ row.ambiente }}</td></tr>
+                      }
+                    }
+                  </tbody>
+                </table>
+              </section>
+            }
+            @if (sortedSteps().length > 0) {
+              <section class="print-section">
+                <h2>Documentação em tópicos</h2>
+                @for (step of sortedSteps(); track step.id) {
+                  <div class="print-step">
+                    <h3>Step {{ step.order }}: {{ step.title || '(Sem título)' }}</h3>
+                    <div class="print-step-desc" [innerHTML]="stepDescriptionTrusted(step)"></div>
+                  </div>
+                }
+              </section>
+            } @else if (legacyContent()) {
+              <section class="print-section">
+                <div class="print-body rich-print-body" [innerHTML]="trustedLegacyContent()"></div>
+              </section>
+            }
             <p class="print-footer">Gerado em {{ printDate() }}</p>
           </div>
         </div>
@@ -126,42 +159,82 @@ import type { Demand } from '../../core/models/demand.model';
         } @else {
           <form class="tech-form" (ngSubmit)="!viewMode() && save()">
             <section class="form-section">
-              <label for="doc-title">Título</label>
+              <h3>Título</h3>
               <input id="doc-title" type="text" class="form-control" [(ngModel)]="title" name="title" placeholder="Ex: Desenho de solução - Integração X" [disabled]="viewMode()" />
             </section>
+
             <section class="form-section">
-              <label for="doc-content">Conteúdo</label>
-              <p class="hint">Use a barra de ferramentas: negrito, itálico, sublinhado e títulos (H1/H2/H3).</p>
-              @if (viewMode()) {
-                <div class="rich-view rich-editor-content form-control form-control-rich" [innerHTML]="trustedContent()" id="doc-content-view"></div>
-              } @else {
-                <div #toolbarRef class="rich-toolbar" role="toolbar" aria-label="Formatação do texto">
-                  <button type="button" class="toolbar-btn" (mousedown)="keepFocus($event)" (click)="execCmd('bold')" title="Negrito (Ctrl+B)" aria-label="Negrito">
-                    <strong>B</strong>
-                  </button>
-                  <button type="button" class="toolbar-btn" (mousedown)="keepFocus($event)" (click)="execCmd('italic')" title="Itálico" aria-label="Itálico">
-                    <em>I</em>
-                  </button>
-                  <button type="button" class="toolbar-btn" (mousedown)="keepFocus($event)" (click)="execCmd('underline')" title="Sublinhado" aria-label="Sublinhado">
-                    <span class="underline">S</span>
-                  </button>
-                  <span class="toolbar-sep" aria-hidden="true"></span>
-                  <button type="button" class="toolbar-btn" (mousedown)="keepFocus($event)" (click)="execCmd('formatBlock', 'h1')" title="Título 1" aria-label="Título 1">H1</button>
-                  <button type="button" class="toolbar-btn" (mousedown)="keepFocus($event)" (click)="execCmd('formatBlock', 'h2')" title="Título 2" aria-label="Título 2">H2</button>
-                  <button type="button" class="toolbar-btn" (mousedown)="keepFocus($event)" (click)="execCmd('formatBlock', 'h3')" title="Título 3" aria-label="Título 3">H3</button>
-                </div>
-                <div
-                  #editorEl
-                  class="rich-editor form-control form-control-rich rich-editor-content"
-                  contenteditable="true"
-                  data-placeholder="Digite o conteúdo do documento..."
-                  role="textbox"
-                  aria-label="Conteúdo do documento"
-                  (input)="onContentInput()"
-                  (blur)="onContentBlur()"
-                ></div>
+              <h3>Resumo / Contexto</h3>
+              <p class="hint">Contexto geral da solução ou objetivo do documento.</p>
+              <textarea id="doc-summary" class="form-control form-control-textarea" [(ngModel)]="summaryValue" name="summary" rows="3" placeholder="Descreva o contexto..." [disabled]="viewMode()"></textarea>
+            </section>
+
+            <section class="form-section">
+              <h3>Chaves (opcional)</h3>
+              <p class="hint">Key, Value, Ambiente – se houver alterações de Keyvault/configuração.</p>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Key</th>
+                      <th>Value</th>
+                      <th>Ambiente</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of keyMappings(); track row.id) {
+                      <tr>
+                        <td><input type="text" class="form-control form-control-cell" [(ngModel)]="row.key" [ngModelOptions]="{standalone: true}" placeholder="Key" [disabled]="viewMode()" /></td>
+                        <td><input type="text" class="form-control form-control-cell" [(ngModel)]="row.value" [ngModelOptions]="{standalone: true}" placeholder="Value" [disabled]="viewMode()" /></td>
+                        <td>
+                          <select class="form-control form-control-cell form-control-select" [(ngModel)]="row.ambiente" [ngModelOptions]="{standalone: true}" [disabled]="viewMode()">
+                            <option value="">Ambiente</option>
+                            @for (opt of ambienteOptions; track opt) {
+                              <option [value]="opt">{{ opt }}</option>
+                            }
+                          </select>
+                        </td>
+                        <td>@if (!viewMode()) { <button type="button" class="btn-remove-row" (click)="removeKeyMapping(row)" title="Remover">×</button> }</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              @if (!viewMode()) {
+                <button type="button" class="btn-add-row" (click)="addKeyMapping()">+ Adicionar linha</button>
               }
             </section>
+
+            <section class="form-section">
+              <h3>Documentação em tópicos</h3>
+              <p class="hint">Step 1, Step 2, … – cada passo com título e descrição (ex: Step 1: API - Criar novo endpoint).</p>
+              <div class="steps-list">
+                @for (step of sortedSteps(); track step.id) {
+                  <div class="step-card">
+                    <span class="step-number" aria-hidden="true">Step {{ step.order }}</span>
+                    <div class="step-fields">
+                      <input type="text" class="form-control" [(ngModel)]="step.title" [ngModelOptions]="{standalone: true}" placeholder="Ex: API - Criar novo endpoint" [disabled]="viewMode()" />
+                      <textarea class="form-control form-control-textarea form-control-step-desc" [(ngModel)]="step.description" [ngModelOptions]="{standalone: true}" placeholder="Detalhes do passo..." rows="3" [disabled]="viewMode()"></textarea>
+                    </div>
+                    @if (!viewMode()) {
+                      <button type="button" class="btn-remove-row btn-remove-step" (click)="removeStep(step)" title="Remover passo">×</button>
+                    }
+                  </div>
+                }
+              </div>
+              @if (!viewMode()) {
+                <button type="button" class="btn-add-row" (click)="addStep()">+ Adicionar passo</button>
+              }
+            </section>
+
+            @if (legacyContent()) {
+              <section class="form-section form-section-legacy">
+                <h3>Conteúdo (formato anterior)</h3>
+                <p class="hint">Este documento tinha conteúdo no formato antigo. Você pode mantê-lo como referência ou migrar para os passos acima.</p>
+                <textarea class="form-control form-control-textarea" [(ngModel)]="legacyContentValue" name="legacyContent" rows="6" [disabled]="viewMode()"></textarea>
+              </section>
+            }
 
             <div class="form-actions">
               @if (viewMode()) {
@@ -179,7 +252,7 @@ import type { Demand } from '../../core/models/demand.model';
           </form>
         }
 
-        @if (docId() || title || content) {
+        @if (docId() || title || summary() || steps().length > 0 || legacyContent()) {
           <div #printArea class="print-area" [attr.aria-hidden]="true">
             <div class="print-content">
               <h1>Documento Técnico</h1>
@@ -189,9 +262,42 @@ import type { Demand } from '../../core/models/demand.model';
               } @else {
                 <p class="print-demand">Sem demanda vinculada</p>
               }
-              <section class="print-section">
-                <div class="print-body rich-print-body" [innerHTML]="trustedContent()"></div>
-              </section>
+              @if (summary()) {
+                <section class="print-section">
+                  <h2>Resumo / Contexto</h2>
+                  <p class="print-body-text">{{ summary() }}</p>
+                </section>
+              }
+              @if (hasKeyMappingsForPrint()) {
+                <section class="print-section">
+                  <h2>Chaves (Keyvault / configuração)</h2>
+                  <table>
+                    <thead><tr><th>Key</th><th>Value</th><th>Ambiente</th></tr></thead>
+                    <tbody>
+                      @for (row of keyMappings(); track row.id) {
+                        @if (row.key || row.value || row.ambiente) {
+                          <tr><td>{{ row.key }}</td><td>{{ row.value }}</td><td>{{ row.ambiente }}</td></tr>
+                        }
+                      }
+                    </tbody>
+                  </table>
+                </section>
+              }
+              @if (sortedSteps().length > 0) {
+                <section class="print-section">
+                  <h2>Documentação em tópicos</h2>
+                  @for (step of sortedSteps(); track step.id) {
+                    <div class="print-step">
+                      <h3>Step {{ step.order }}: {{ step.title || '(Sem título)' }}</h3>
+                      <div class="print-step-desc" [innerHTML]="stepDescriptionTrusted(step)"></div>
+                    </div>
+                  }
+                </section>
+              } @else if (legacyContent()) {
+                <section class="print-section">
+                  <div class="print-body rich-print-body" [innerHTML]="trustedLegacyContent()"></div>
+                </section>
+              }
               <p class="print-footer">Gerado em {{ printDate() }}</p>
             </div>
           </div>
@@ -214,34 +320,33 @@ import type { Demand } from '../../core/models/demand.model';
     @keyframes spin { to { transform: rotate(360deg); } }
     .tech-form { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 1.5rem; border-left: 4px solid #0ea5e9; }
     .form-section { margin-bottom: 1.75rem; }
-    .form-section:last-of-type { margin-bottom: 0; }
-    .form-section label { display: block; font-size: 0.8rem; font-weight: 500; color: #4b5563; margin-bottom: 0.375rem; }
+    .form-section-legacy { border-top: 1px dashed #e5e7eb; padding-top: 1.25rem; }
+    .form-section h3 { font-size: 1rem; font-weight: 600; color: #374151; margin: 0 0 0.5rem 0; }
     .hint { font-size: 0.8rem; color: #6b7280; margin: 0 0 0.75rem 0; }
     .form-control { display: block; width: 100%; padding: 0.625rem 0.875rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem; line-height: 1.4; color: #1f2937; background: #fff; box-sizing: border-box; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
     .form-control::placeholder { color: #9ca3af; }
     .form-control:hover { border-color: #9ca3af; }
     .form-control:focus { outline: none; border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2); }
     .form-control:disabled { background: #f3f4f6; color: #6b7280; cursor: not-allowed; }
-    .form-control-rich { min-height: 200px; resize: vertical; }
-    .rich-view.form-control-rich { overflow-y: auto; }
-
-    .rich-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; padding: 0.5rem; background: #f9fafb; border: 1px solid #e5e7eb; border-bottom: none; border-radius: 8px 8px 0 0; }
-    .toolbar-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 0.5rem; border: 1px solid transparent; border-radius: 6px; background: #fff; color: #374151; font-size: 0.875rem; cursor: pointer; transition: all 0.15s; }
-    .toolbar-btn:hover { background: #e0f2fe; border-color: #bae6fd; color: #0369a1; }
-    .toolbar-btn strong, .toolbar-btn em { font-style: normal; font-weight: 700; }
-    .toolbar-btn .underline { text-decoration: underline; }
-    .toolbar-sep { width: 1px; height: 20px; background: #e5e7eb; margin: 0 0.25rem; }
-    .rich-editor { overflow-y: auto; }
-    .rich-editor:empty::before { content: attr(data-placeholder); color: #9ca3af; }
-    .rich-editor-content h1 { font-size: 1.5rem; font-weight: 700; color: #0c4a6e; margin: 0 0 0.75rem 0; line-height: 1.3; }
-    .rich-editor-content h2 { font-size: 1.25rem; font-weight: 600; color: #0e7490; margin: 1rem 0 0.5rem 0; line-height: 1.35; }
-    .rich-editor-content h3 { font-size: 1.1rem; font-weight: 600; color: #374151; margin: 0.75rem 0 0.5rem 0; line-height: 1.4; }
-    .rich-editor-content p { margin: 0 0 0.5rem 0; }
-    .rich-editor-content ul, .rich-editor-content ol { margin: 0.5rem 0; padding-left: 1.5rem; }
-    .rich-editor-content table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.875rem; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
-    .rich-editor-content th, .rich-editor-content td { border: 1px solid #e5e7eb; padding: 0.5rem 0.75rem; text-align: left; }
-    .rich-editor-content th { background: #f0f9ff; font-weight: 600; color: #0369a1; }
-
+    .form-control-textarea { resize: vertical; min-height: 72px; }
+    .form-control-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; padding-right: 2rem; }
+    .table-wrap { overflow-x: auto; margin-bottom: 0.5rem; border: 1px solid #e5e7eb; border-radius: 8px; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .data-table th, .data-table td { padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; text-align: left; vertical-align: middle; }
+    .data-table th { background: #f9fafb; font-weight: 600; color: #374151; }
+    .form-control-cell { min-height: 38px; padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; }
+    .form-control-cell:focus { border-color: #0ea5e9; box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15); }
+    .form-control-select.form-control-cell { min-width: 100px; }
+    .btn-remove-row { width: 28px; height: 28px; border: none; background: #fee2e2; color: #dc2626; border-radius: 6px; cursor: pointer; font-size: 1.2rem; line-height: 1; flex-shrink: 0; }
+    .btn-remove-row:hover { background: #fecaca; }
+    .btn-add-row { padding: 0.5rem 0.75rem; border: 1px dashed #d1d5db; background: #f9fafb; border-radius: 8px; font-size: 0.85rem; color: #6b7280; cursor: pointer; }
+    .btn-add-row:hover { background: #f0f9ff; border-color: #0ea5e9; color: #0369a1; }
+    .steps-list { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 0.5rem; }
+    .step-card { display: flex; gap: 0.75rem; align-items: flex-start; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 10px; background: #fafafa; }
+    .step-number { flex: 0 0 auto; font-size: 0.8rem; font-weight: 700; color: #0ea5e9; padding: 0.25rem 0.5rem; background: #e0f2fe; border-radius: 6px; }
+    .step-fields { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+    .form-control-step-desc { min-height: 60px; font-size: 0.875rem; }
+    .btn-remove-step { align-self: center; }
     .form-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #f3f4f6; }
     .btn-primary { padding: 0.625rem 1.25rem; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; }
     .btn-primary-tech { background: #0ea5e9; color: white; }
@@ -277,6 +382,13 @@ import type { Demand } from '../../core/models/demand.model';
     .print-title { font-size: 16px; font-weight: 600; color: #1f2937; margin: 0 0 8px 0; }
     .print-demand { font-size: 12px; color: #64748b; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb; }
     .print-section { margin-top: 16px; }
+    .print-content h2 { font-size: 13px; font-weight: 600; color: #374151; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.03em; }
+    .print-body-text { margin: 0; white-space: pre-wrap; line-height: 1.5; color: #374151; }
+    .print-step { margin-top: 14px; padding-top: 12px; border-top: 1px solid #f3f4f6; }
+    .print-step h3 { font-size: 14px; font-weight: 600; color: #0e7490; margin: 0 0 6px 0; }
+    .print-step-desc { font-size: 13px; line-height: 1.5; color: #4b5563; white-space: pre-wrap; }
+    .print-step-desc :deep(p) { margin: 0 0 0.5rem 0; }
+    .print-step-desc :deep(ul), .print-step-desc :deep(ol) { margin: 0.5rem 0; padding-left: 1.25rem; }
     .print-body { line-height: 1.6; color: #374151; }
     .rich-print-body h1 { font-size: 16px; font-weight: 700; margin: 0.75rem 0 0.5rem 0; }
     .rich-print-body h2 { font-size: 14px; font-weight: 600; margin: 0.5rem 0 0.35rem 0; }
@@ -284,6 +396,9 @@ import type { Demand } from '../../core/models/demand.model';
     .rich-print-body table { width: 100%; border-collapse: collapse; margin: 0.5rem 0; font-size: 12px; }
     .rich-print-body th, .rich-print-body td { border: 1px solid #e5e7eb; padding: 6px 8px; }
     .rich-print-body th { background: #f9fafb; font-weight: 600; }
+    .print-content table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 12px; }
+    .print-content table th, .print-content table td { border: 1px solid #e5e7eb; padding: 8px 10px; text-align: left; }
+    .print-content table th { background: #f9fafb; font-weight: 600; color: #374151; }
     .print-footer { margin-top: 24px; padding-top: 12px; font-size: 11px; color: #9ca3af; border-top: 1px solid #e5e7eb; }
     .print-only-page { min-height: 100vh; background: white; padding: 20px; }
     @media print {
@@ -298,17 +413,12 @@ import type { Demand } from '../../core/models/demand.model';
     }
   `]
 })
-export class TechDocumentEditorComponent implements OnInit, AfterViewChecked, OnDestroy {
+export class TechDocumentEditorComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private demandService = inject(DemandService);
   private techService = inject(TechDocumentService);
   private sanitizer = inject(DomSanitizer);
-
-  printAreaRef = viewChild<ElementRef<HTMLDivElement>>('printArea');
-  editorEl = viewChild<ElementRef<HTMLDivElement>>('editorEl');
-  toolbarRef = viewChild<ElementRef<HTMLElement>>('toolbarRef');
-  private toolbarMouseDownBound = this.captureToolbarMouseDown.bind(this);
 
   loading = signal(true);
   docId = signal<string | null>(null);
@@ -317,12 +427,15 @@ export class TechDocumentEditorComponent implements OnInit, AfterViewChecked, On
   demandDropdownOpen = signal(false);
   viewMode = signal(false);
   printOnlyMode = signal(false);
-  private contentPatched = false;
-  /** Seleção salva no mousedown da toolbar para restaurar antes do execCommand. */
-  private savedRange: Range | null = null;
 
   title = '';
-  content = '';
+  summaryValue = '';
+  keyMappings = signal<TechKeyMapping[]>([]);
+  steps = signal<TechDocumentStep[]>([]);
+  /** Conteúdo legado (documentos antigos sem steps) */
+  legacyContentValue = '';
+
+  readonly ambienteOptions = AMBIENTE_OPTIONS;
 
   isNew = computed(() => !this.docId());
   demand = computed(() => {
@@ -330,12 +443,22 @@ export class TechDocumentEditorComponent implements OnInit, AfterViewChecked, On
     return id ? this.demandService.demands().find((d) => d.id === id) ?? null : null;
   });
 
-  printDate = () => new Date().toLocaleString('pt-BR');
+  summary = computed(() => this.summaryValue.trim());
 
-  /** HTML do editor como confiável para exibir listas/tabelas sem o sanitizer remover. */
-  trustedContent(): SafeHtml {
-    return this.sanitizer.bypassSecurityTrustHtml(this.content || '');
-  }
+  sortedSteps = computed(() => {
+    const list = [...this.steps()];
+    list.sort((a, b) => a.order - b.order);
+    return list;
+  });
+
+  /** Conteúdo legado existe quando não há passos e há content salvo */
+  legacyContent = computed(() => {
+    const steps = this.steps();
+    const legacy = this.legacyContentValue.trim();
+    return steps.length === 0 && legacy.length > 0;
+  });
+
+  printDate = () => new Date().toLocaleString('pt-BR');
 
   filteredDemands = computed(() => {
     const q = this.demandSearch().trim().toLowerCase();
@@ -371,44 +494,15 @@ export class TechDocumentEditorComponent implements OnInit, AfterViewChecked, On
       this.docId.set(null);
       this.demandId.set(demandIdFromQuery ?? null);
       this.loading.set(false);
-    }
-    document.addEventListener('mousedown', this.toolbarMouseDownBound, true);
-  }
-
-  ngOnDestroy(): void {
-    document.removeEventListener('mousedown', this.toolbarMouseDownBound, true);
-  }
-
-  /** Captura mousedown na toolbar antes do navegador mover o foco; salva seleção e impede default. */
-  private captureToolbarMouseDown(e: MouseEvent): void {
-    const toolbar = this.toolbarRef()?.nativeElement;
-    const editor = this.editorEl()?.nativeElement;
-    if (!toolbar?.contains(e.target as Node) || !editor) return;
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      const range = sel.getRangeAt(0);
-      if (editor.contains(range.commonAncestorContainer)) {
-        this.savedRange = range.cloneRange();
-        e.preventDefault();
-      }
+      if (this.keyMappings().length === 0) this.addKeyMapping();
+      if (this.steps().length === 0) this.addStep();
     }
   }
 
-  ngAfterViewChecked(): void {
-    if (this.contentPatched || this.viewMode()) return;
-    const el = this.editorEl()?.nativeElement;
-    if (el && this.content !== undefined && this.content !== null) {
-      const current = el.innerHTML;
-      if (current !== this.content) {
-        el.innerHTML = this.content || '';
-        this.contentPatched = true;
-      }
-    }
-  }
+  ngOnDestroy(): void {}
 
   private async loadDoc(id: string): Promise<void> {
     this.loading.set(true);
-    this.contentPatched = false;
     try {
       const doc = await this.techService.getById(id);
       if (!doc) {
@@ -416,8 +510,13 @@ export class TechDocumentEditorComponent implements OnInit, AfterViewChecked, On
         return;
       }
       this.demandId.set(doc.demandId);
-      this.title = doc.title;
-      this.content = doc.content ?? '';
+      this.title = doc.title ?? '';
+      this.summaryValue = doc.summary ?? '';
+      this.keyMappings.set(doc.keyMappings?.length ? [...doc.keyMappings] : []);
+      this.steps.set(doc.steps?.length ? doc.steps.map((s) => ({ ...s })) : []);
+      this.legacyContentValue = doc.content ?? '';
+      if (this.keyMappings().length === 0) this.addKeyMapping();
+      if (this.steps().length === 0 && !(doc.content ?? '').trim()) this.addStep();
       const viewOnly = this.route.snapshot.queryParamMap.get('view') === '1';
       const printParam = this.route.snapshot.queryParamMap.get('print') === '1';
       this.viewMode.set(viewOnly);
@@ -425,13 +524,6 @@ export class TechDocumentEditorComponent implements OnInit, AfterViewChecked, On
         this.printOnlyMode.set(true);
         setTimeout(() => window.print(), 600);
       }
-      setTimeout(() => {
-        const editor = this.editorEl()?.nativeElement;
-        if (editor && !this.viewMode()) {
-          editor.innerHTML = this.content || '';
-          this.contentPatched = true;
-        }
-      }, 0);
     } catch {
       this.router.navigate(['/documentos/tech']);
     } finally {
@@ -439,48 +531,44 @@ export class TechDocumentEditorComponent implements OnInit, AfterViewChecked, On
     }
   }
 
-  /** Impede que o botão roube o foco e guarda a seleção atual para restaurar no click. */
-  keepFocus(event: MouseEvent): void {
-    event.preventDefault();
-    const editor = this.editorEl()?.nativeElement;
-    const sel = window.getSelection();
-    if (editor && sel && sel.rangeCount > 0) {
-      const range = sel.getRangeAt(0);
-      if (editor.contains(range.commonAncestorContainer)) {
-        this.savedRange = range.cloneRange();
-      }
-    }
+  addKeyMapping(): void {
+    this.keyMappings.update((list) => [...list, this.techService.createKeyMapping()]);
   }
 
-  onContentInput(): void {
-    const el = this.editorEl()?.nativeElement;
-    if (el) this.content = el.innerHTML;
+  removeKeyMapping(row: TechKeyMapping): void {
+    this.keyMappings.update((list) => list.filter((r) => r.id !== row.id));
   }
 
-  onContentBlur(): void {
-    const el = this.editorEl()?.nativeElement;
-    if (el) this.content = el.innerHTML;
+  addStep(): void {
+    const list = this.steps();
+    const nextOrder = list.length === 0 ? 1 : Math.max(...list.map((s) => s.order), 0) + 1;
+    this.steps.update((l) => [...l, this.techService.createStep(nextOrder)]);
   }
 
-  execCmd(cmd: string, value?: string): void {
-    const el = this.editorEl()?.nativeElement;
-    if (!el) return;
-    const rangeToRestore = this.savedRange?.cloneRange() ?? null;
-    this.savedRange = null;
-    el.focus();
-    setTimeout(() => {
-      const sel = window.getSelection();
-      if (sel && rangeToRestore) {
-        try {
-          sel.removeAllRanges();
-          sel.addRange(rangeToRestore);
-        } catch {
-          // range pode estar inválido se o DOM mudou
-        }
-      }
-      document.execCommand(cmd, false, value ?? '');
-      this.content = el.innerHTML;
-    }, 0);
+  removeStep(step: TechDocumentStep): void {
+    this.steps.update((list) => list.filter((s) => s.id !== step.id));
+    const list = this.steps();
+    list.forEach((s, i) => {
+      s.order = i + 1;
+    });
+  }
+
+  hasKeyMappingsForPrint(): boolean {
+    return this.keyMappings().some((r) => Boolean(r.key || r.value || r.ambiente));
+  }
+
+  stepDescriptionTrusted(step: TechDocumentStep): SafeHtml {
+    const text = step.description || '';
+    const escaped = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '<br>');
+    return this.sanitizer.bypassSecurityTrustHtml(escaped);
+  }
+
+  trustedLegacyContent(): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(this.legacyContentValue || '');
   }
 
   switchToEditMode(): void {
@@ -519,12 +607,14 @@ export class TechDocumentEditorComponent implements OnInit, AfterViewChecked, On
   }
 
   async save(): Promise<void> {
-    const el = this.editorEl()?.nativeElement;
-    if (el) this.content = el.innerHTML;
     const id = this.docId();
+    const stepsList = this.sortedSteps();
     const payload = {
       title: this.title.trim() || 'Sem título',
-      content: this.content,
+      summary: this.summaryValue.trim(),
+      keyMappings: this.keyMappings().filter((r) => r.key || r.value || r.ambiente),
+      steps: stepsList,
+      content: this.legacyContentValue,
       demandId: this.demandId()
     };
     if (id) {
