@@ -12,7 +12,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
-import { DemandService, ReleaseDocumentService } from '../../core';
+import { DemandService, ReleaseDocumentService, AuthService } from '../../core';
 import { HeaderComponent } from '../../components/header/header.component';
 import type {
   ReleaseDocument,
@@ -72,7 +72,7 @@ import type { Demand } from '../../core/models/demand.model';
                 <p class="print-observacoes">{{ observacoesGerais }}</p>
               </section>
             }
-            <p class="print-footer">Gerado em {{ printDate() }}</p>
+            <p class="print-footer">{{ printFooterLine() }}</p>
           </div>
         </div>
       </div>
@@ -297,7 +297,7 @@ import type { Demand } from '../../core/models/demand.model';
                 <p class="print-observacoes">{{ observacoesGerais }}</p>
               </section>
             }
-            <p class="print-footer">Gerado em {{ printDate() }}</p>
+            <p class="print-footer">{{ printFooterLine() }}</p>
           </div>
         </div>
       }
@@ -401,11 +401,16 @@ import type { Demand } from '../../core/models/demand.model';
     .btn-editor-view-mode:hover { background: #047857; }
     .print-only-page { min-height: 100vh; background: white; padding: 20px; }
     @media print {
+      @page { size: auto; margin: 10mm; }
       body * { visibility: hidden !important; }
       .page-container .print-area,
       .page-container .print-area * { visibility: visible !important; }
+      .print-only-page .print-area,
+      .print-only-page .print-area * { visibility: visible !important; }
       .page-container > *:not(.print-area) { display: none !important; }
-      .print-area { position: fixed !important; left: 0 !important; top: 0 !important; width: 100% !important; max-width: none !important; padding: 15mm !important; margin: 0 !important; background: white !important; }
+      .print-only-page > *:not(.print-area) { display: none !important; }
+      .print-area { position: static !important; left: auto !important; top: auto !important; width: 100% !important; max-width: none !important; padding: 15mm !important; margin: 0 !important; background: white !important; overflow: visible !important; height: auto !important; min-height: auto !important; }
+      .print-content { overflow: visible !important; height: auto !important; }
       .print-repo-link { color: #2563eb !important; text-decoration: underline !important; }
     }
   `]
@@ -415,6 +420,7 @@ export class ReleaseDocumentEditorComponent implements OnInit {
   private route = inject(ActivatedRoute);
   demandService = inject(DemandService);
   private releaseService = inject(ReleaseDocumentService);
+  private authService = inject(AuthService);
 
   printAreaRef = viewChild<ElementRef<HTMLDivElement>>('printArea');
 
@@ -449,6 +455,12 @@ export class ReleaseDocumentEditorComponent implements OnInit {
     return id ? this.releaseService.documents().find((d) => d.id === id) : null;
   });
   printDate = () => new Date().toLocaleString('pt-BR');
+  printFooterLine = (): string => {
+    const date = this.printDate();
+    const u = this.authService.user();
+    const userLabel = u?.displayName?.trim() || u?.email || '';
+    return userLabel ? `Gerado em ${date} · Usuário: ${userLabel}` : `Gerado em ${date}`;
+  };
 
   readonly ambienteOptions = ['DEV', 'QAS', 'PRD'];
 
@@ -627,6 +639,13 @@ export class ReleaseDocumentEditorComponent implements OnInit {
   }
 
   exportPdf(): void {
+    const prevTitle = document.title;
+    document.title = ' ';
+    const onAfterPrint = (): void => {
+      document.title = prevTitle;
+      window.removeEventListener('afterprint', onAfterPrint);
+    };
+    window.addEventListener('afterprint', onAfterPrint);
     window.print();
   }
 }

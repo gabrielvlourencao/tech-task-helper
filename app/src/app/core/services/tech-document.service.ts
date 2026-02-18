@@ -19,7 +19,8 @@ import { AuthService } from './auth.service';
 import type {
   TechDocument,
   TechKeyMapping,
-  TechDocumentStep
+  TechDocumentStep,
+  ImpactedRepo
 } from '../models/tech-document.model';
 
 const COLLECTION = 'techDocs';
@@ -100,6 +101,15 @@ export class TechDocumentService {
     const keyMappings = Array.isArray(data['keyMappings'])
       ? (data['keyMappings'] as TechKeyMapping[])
       : [];
+    const impactedReposRaw = data['impactedRepos'];
+    const impactedRepos = Array.isArray(impactedReposRaw)
+      ? (impactedReposRaw as { id?: string; name?: string; link?: string; stack?: string }[]).map((r, i) => ({
+          id: r.id ?? `repo-${i}`,
+          name: r.name ?? '',
+          link: r.link ?? '',
+          stack: r.stack ?? ''
+        }))
+      : [];
     const stepsRaw = Array.isArray(data['steps']) ? data['steps'] : [];
     const steps = stepsRaw.map(
       (s: { id?: string; order?: number; title?: string; description?: string }, i: number) => ({
@@ -113,6 +123,8 @@ export class TechDocumentService {
       id: docSnap.id,
       title: data['title'] ?? '',
       summary: data['summary'] ?? '',
+      impactedRepos,
+      generalObservations: data['generalObservations'] ?? '',
       keyMappings,
       steps,
       content: data['content'] ?? '',
@@ -145,6 +157,15 @@ export class TechDocumentService {
     };
   }
 
+  createImpactedRepo(): ImpactedRepo {
+    return {
+      id: this.generateId(),
+      name: '',
+      link: '',
+      stack: ''
+    };
+  }
+
   async getById(id: string): Promise<TechDocument | null> {
     const ref = doc(this.firebase.firestore, COLLECTION, id);
     try {
@@ -166,6 +187,8 @@ export class TechDocumentService {
     const payload = {
       title: data.title ?? '',
       summary: data.summary ?? '',
+      impactedRepos: data.impactedRepos ?? [],
+      generalObservations: data.generalObservations ?? '',
       keyMappings: data.keyMappings ?? [],
       steps: data.steps ?? [],
       content: data.content ?? '',
@@ -190,6 +213,8 @@ export class TechDocumentService {
     const clean: Record<string, unknown> = {};
     if (data.title !== undefined) clean['title'] = data.title;
     if (data.summary !== undefined) clean['summary'] = data.summary;
+    if (data.impactedRepos !== undefined) clean['impactedRepos'] = data.impactedRepos;
+    if (data.generalObservations !== undefined) clean['generalObservations'] = data.generalObservations;
     if (data.keyMappings !== undefined) clean['keyMappings'] = data.keyMappings;
     if (data.steps !== undefined) clean['steps'] = data.steps;
     if (data.content !== undefined) clean['content'] = data.content;

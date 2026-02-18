@@ -8,21 +8,23 @@ import {
   OnInit,
   OnDestroy
 } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
-import { DemandService, TechDocumentService } from '../../core';
+import { DemandService, TechDocumentService, AuthService } from '../../core';
 import { HeaderComponent } from '../../components/header/header.component';
+import { StepDescriptionEditorComponent, sanitizeStepHtml } from './step-description-editor.component';
 import type { Demand } from '../../core/models/demand.model';
-import type { TechKeyMapping, TechDocumentStep } from '../../core/models/tech-document.model';
+import type { TechKeyMapping, TechDocumentStep, ImpactedRepo } from '../../core/models/tech-document.model';
 
 const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
 
 @Component({
   selector: 'app-tech-document-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, HeaderComponent],
+  imports: [CommonModule, FormsModule, RouterLink, HeaderComponent, StepDescriptionEditorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (printOnlyMode()) {
@@ -40,6 +42,21 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
               <section class="print-section">
                 <h2>Resumo / Contexto</h2>
                 <p class="print-body-text">{{ summary() }}</p>
+              </section>
+            }
+            @if (hasImpactedReposForPrint()) {
+              <section class="print-section">
+                <h2>Repos impactados</h2>
+                <table>
+                  <thead><tr><th>Nome</th><th>Link</th><th>Stack</th></tr></thead>
+                  <tbody>
+                    @for (row of impactedRepos(); track row.id) {
+                      @if (row.name || row.link || row.stack) {
+                        <tr><td>{{ row.name }}</td><td>{{ row.link }}</td><td>{{ row.stack }}</td></tr>
+                      }
+                    }
+                  </tbody>
+                </table>
               </section>
             }
             @if (hasKeyMappingsForPrint()) {
@@ -72,7 +89,11 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
                 <div class="print-body rich-print-body" [innerHTML]="trustedLegacyContent()"></div>
               </section>
             }
-            <p class="print-footer">Gerado em {{ printDate() }}</p>
+            <section class="print-section">
+              <h2>Observações gerais</h2>
+              <p class="print-body-text">{{ generalObservationsValue || '—' }}</p>
+            </section>
+            <p class="print-footer">{{ printFooterLine() }}</p>
           </div>
         </div>
       </div>
@@ -170,6 +191,36 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
             </section>
 
             <section class="form-section">
+              <h3>Repos impactados</h3>
+              <p class="hint">Repositórios impactados pela solução: Nome, Link e Stack do projeto.</p>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Nome</th>
+                      <th>Link</th>
+                      <th>Stack</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of impactedRepos(); track row.id) {
+                      <tr>
+                        <td><input type="text" class="form-control form-control-cell" [(ngModel)]="row.name" [ngModelOptions]="{standalone: true}" placeholder="Nome do repo" [disabled]="viewMode()" /></td>
+                        <td><input type="url" class="form-control form-control-cell" [(ngModel)]="row.link" [ngModelOptions]="{standalone: true}" placeholder="https://..." [disabled]="viewMode()" /></td>
+                        <td><input type="text" class="form-control form-control-cell" [(ngModel)]="row.stack" [ngModelOptions]="{standalone: true}" placeholder="Ex: .NET 8, Angular 21" [disabled]="viewMode()" /></td>
+                        <td>@if (!viewMode()) { <button type="button" class="btn-remove-row" (click)="removeImpactedRepo(row)" title="Remover">×</button> }</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              @if (!viewMode()) {
+                <button type="button" class="btn-add-row" (click)="addImpactedRepo()">+ Adicionar repo</button>
+              }
+            </section>
+
+            <section class="form-section">
               <h3>Chaves (opcional)</h3>
               <p class="hint">Key, Value, Ambiente – se houver alterações de Keyvault/configuração.</p>
               <div class="table-wrap">
@@ -215,7 +266,15 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
                     <span class="step-number" aria-hidden="true">Step {{ step.order }}</span>
                     <div class="step-fields">
                       <input type="text" class="form-control" [(ngModel)]="step.title" [ngModelOptions]="{standalone: true}" placeholder="Ex: API - Criar novo endpoint" [disabled]="viewMode()" />
-                      <textarea class="form-control form-control-textarea form-control-step-desc" [(ngModel)]="step.description" [ngModelOptions]="{standalone: true}" placeholder="Detalhes do passo..." rows="3" [disabled]="viewMode()"></textarea>
+                      @if (viewMode()) {
+                        <div class="form-control form-control-textarea form-control-step-desc step-desc-readonly" [innerHTML]="stepDescriptionTrusted(step)" role="document" aria-label="Descrição do passo"></div>
+                      } @else {
+                        <app-step-description-editor
+                          [step]="step"
+                          (descriptionChange)="step.description = $event"
+                          class="form-control form-control-textarea form-control-step-desc step-desc-editor"
+                        />
+                      }
                     </div>
                     @if (!viewMode()) {
                       <button type="button" class="btn-remove-row btn-remove-step" (click)="removeStep(step)" title="Remover passo">×</button>
@@ -236,6 +295,12 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
               </section>
             }
 
+            <section class="form-section">
+              <h3>Observações gerais</h3>
+              <p class="hint">Observações ou notas adicionais sobre o documento.</p>
+              <textarea id="doc-general-observations" class="form-control form-control-textarea" [(ngModel)]="generalObservationsValue" name="generalObservations" rows="3" placeholder="Observações gerais..." [disabled]="viewMode()"></textarea>
+            </section>
+
             <div class="form-actions">
               @if (viewMode()) {
                 <button type="button" class="btn-primary btn-primary-tech" (click)="switchToEditMode()">Editar documento</button>
@@ -251,59 +316,78 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
             </div>
           </form>
         }
+      </main>
 
-        @if (docId() || title || summary() || steps().length > 0 || legacyContent()) {
-          <div #printArea class="print-area" [attr.aria-hidden]="true">
-            <div class="print-content">
-              <h1>Documento Técnico</h1>
-              <p class="print-title">{{ title || 'Sem título' }}</p>
-              @if (demand()) {
-                <p class="print-demand">Demanda: {{ demand()!.code }} – {{ demand()!.title }}</p>
-              } @else {
-                <p class="print-demand">Sem demanda vinculada</p>
-              }
-              @if (summary()) {
-                <section class="print-section">
-                  <h2>Resumo / Contexto</h2>
-                  <p class="print-body-text">{{ summary() }}</p>
-                </section>
-              }
-              @if (hasKeyMappingsForPrint()) {
-                <section class="print-section">
-                  <h2>Chaves (Keyvault / configuração)</h2>
-                  <table>
-                    <thead><tr><th>Key</th><th>Value</th><th>Ambiente</th></tr></thead>
-                    <tbody>
-                      @for (row of keyMappings(); track row.id) {
-                        @if (row.key || row.value || row.ambiente) {
-                          <tr><td>{{ row.key }}</td><td>{{ row.value }}</td><td>{{ row.ambiente }}</td></tr>
-                        }
+      @if (docId() || title || summary() || hasImpactedReposForPrint() || generalObservations() || steps().length > 0 || legacyContent()) {
+        <div #printArea class="print-area" [attr.aria-hidden]="true">
+          <div class="print-content">
+            <h1>Documento Técnico</h1>
+            <p class="print-title">{{ title || 'Sem título' }}</p>
+            @if (demand()) {
+              <p class="print-demand">Demanda: {{ demand()!.code }} – {{ demand()!.title }}</p>
+            } @else {
+              <p class="print-demand">Sem demanda vinculada</p>
+            }
+            @if (summary()) {
+              <section class="print-section">
+                <h2>Resumo / Contexto</h2>
+                <p class="print-body-text">{{ summary() }}</p>
+              </section>
+            }
+            @if (hasImpactedReposForPrint()) {
+              <section class="print-section">
+                <h2>Repos impactados</h2>
+                <table>
+                  <thead><tr><th>Nome</th><th>Link</th><th>Stack</th></tr></thead>
+                  <tbody>
+                    @for (row of impactedRepos(); track row.id) {
+                      @if (row.name || row.link || row.stack) {
+                        <tr><td>{{ row.name }}</td><td>{{ row.link }}</td><td>{{ row.stack }}</td></tr>
                       }
-                    </tbody>
-                  </table>
-                </section>
-              }
-              @if (sortedSteps().length > 0) {
-                <section class="print-section">
-                  <h2>Documentação em tópicos</h2>
-                  @for (step of sortedSteps(); track step.id) {
-                    <div class="print-step">
-                      <h3>Step {{ step.order }}: {{ step.title || '(Sem título)' }}</h3>
-                      <div class="print-step-desc" [innerHTML]="stepDescriptionTrusted(step)"></div>
-                    </div>
-                  }
-                </section>
+                    }
+                  </tbody>
+                </table>
+              </section>
+            }
+            @if (hasKeyMappingsForPrint()) {
+              <section class="print-section">
+                <h2>Chaves (Keyvault / configuração)</h2>
+                <table>
+                  <thead><tr><th>Key</th><th>Value</th><th>Ambiente</th></tr></thead>
+                  <tbody>
+                    @for (row of keyMappings(); track row.id) {
+                      @if (row.key || row.value || row.ambiente) {
+                        <tr><td>{{ row.key }}</td><td>{{ row.value }}</td><td>{{ row.ambiente }}</td></tr>
+                      }
+                    }
+                  </tbody>
+                </table>
+              </section>
+            }
+            @if (sortedSteps().length > 0) {
+              <section class="print-section">
+                <h2>Documentação em tópicos</h2>
+                @for (step of sortedSteps(); track step.id) {
+                  <div class="print-step">
+                    <h3>Step {{ step.order }}: {{ step.title || '(Sem título)' }}</h3>
+                    <div class="print-step-desc" [innerHTML]="stepDescriptionTrusted(step)"></div>
+                  </div>
+                }
+              </section>
               } @else if (legacyContent()) {
                 <section class="print-section">
                   <div class="print-body rich-print-body" [innerHTML]="trustedLegacyContent()"></div>
                 </section>
               }
-              <p class="print-footer">Gerado em {{ printDate() }}</p>
+              <section class="print-section">
+                <h2>Observações gerais</h2>
+                <p class="print-body-text">{{ generalObservationsValue || '—' }}</p>
+              </section>
+              <p class="print-footer">{{ printFooterLine() }}</p>
             </div>
           </div>
         }
-      </main>
-    </div>
+      </div>
     }
   `,
   styles: [`
@@ -389,6 +473,9 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
     .print-step-desc { font-size: 13px; line-height: 1.5; color: #4b5563; white-space: pre-wrap; }
     .print-step-desc :deep(p) { margin: 0 0 0.5rem 0; }
     .print-step-desc :deep(ul), .print-step-desc :deep(ol) { margin: 0.5rem 0; padding-left: 1.25rem; }
+    .print-step-desc :deep(img) { max-width: 100%; height: auto; display: block; margin: 0.5rem 0; border-radius: 6px; }
+    .step-desc-readonly { white-space: normal; }
+    .step-desc-readonly :deep(img) { max-width: 100%; height: auto; display: block; margin: 0.5rem 0; border-radius: 6px; }
     .print-body { line-height: 1.6; color: #374151; }
     .rich-print-body h1 { font-size: 16px; font-weight: 700; margin: 0.75rem 0 0.5rem 0; }
     .rich-print-body h2 { font-size: 14px; font-weight: 600; margin: 0.5rem 0 0.35rem 0; }
@@ -402,6 +489,7 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
     .print-footer { margin-top: 24px; padding-top: 12px; font-size: 11px; color: #9ca3af; border-top: 1px solid #e5e7eb; }
     .print-only-page { min-height: 100vh; background: white; padding: 20px; }
     @media print {
+      @page { size: auto; margin: 10mm; }
       body * { visibility: hidden !important; }
       .page-container .print-area,
       .page-container .print-area *,
@@ -409,7 +497,8 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
       .print-only-page .print-area * { visibility: visible !important; }
       .page-container > *:not(.print-area) { display: none !important; }
       .print-only-page > *:not(.print-area) { display: none !important; }
-      .print-area { position: fixed !important; left: 0 !important; top: 0 !important; width: 100% !important; max-width: none !important; padding: 15mm !important; margin: 0 !important; background: white !important; }
+      .print-area { position: static !important; left: auto !important; top: auto !important; width: 100% !important; max-width: none !important; padding: 15mm !important; margin: 0 !important; background: white !important; overflow: visible !important; height: auto !important; min-height: auto !important; }
+      .print-content { overflow: visible !important; height: auto !important; }
     }
   `]
 })
@@ -418,6 +507,7 @@ export class TechDocumentEditorComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private demandService = inject(DemandService);
   private techService = inject(TechDocumentService);
+  private authService = inject(AuthService);
   private sanitizer = inject(DomSanitizer);
 
   loading = signal(true);
@@ -430,10 +520,14 @@ export class TechDocumentEditorComponent implements OnInit, OnDestroy {
 
   title = '';
   summaryValue = '';
+  impactedRepos = signal<ImpactedRepo[]>([]);
+  generalObservationsValue = '';
   keyMappings = signal<TechKeyMapping[]>([]);
   steps = signal<TechDocumentStep[]>([]);
   /** Conteúdo legado (documentos antigos sem steps) */
   legacyContentValue = '';
+
+  private routeParamSub?: Subscription;
 
   readonly ambienteOptions = AMBIENTE_OPTIONS;
 
@@ -444,6 +538,9 @@ export class TechDocumentEditorComponent implements OnInit, OnDestroy {
   });
 
   summary = computed(() => this.summaryValue.trim());
+  generalObservations = computed(() => this.generalObservationsValue.trim());
+  hasImpactedReposForPrint = (): boolean =>
+    this.impactedRepos().some((r) => Boolean(r.name?.trim() || r.link?.trim() || r.stack?.trim()));
 
   sortedSteps = computed(() => {
     const list = [...this.steps()];
@@ -459,6 +556,12 @@ export class TechDocumentEditorComponent implements OnInit, OnDestroy {
   });
 
   printDate = () => new Date().toLocaleString('pt-BR');
+  printFooterLine = (): string => {
+    const date = this.printDate();
+    const u = this.authService.user();
+    const userLabel = u?.displayName?.trim() || u?.email || '';
+    return userLabel ? `Gerado em ${date} · Usuário: ${userLabel}` : `Gerado em ${date}`;
+  };
 
   filteredDemands = computed(() => {
     const q = this.demandSearch().trim().toLowerCase();
@@ -481,25 +584,36 @@ export class TechDocumentEditorComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    const segments = this.route.snapshot.url;
-    const lastSegment = segments[segments.length - 1]?.path;
-    const isNewRoute = lastSegment === 'novo';
-    const id = this.route.snapshot.paramMap.get('id');
-    const demandIdFromQuery = this.route.snapshot.queryParamMap.get('demandId');
+    this.routeParamSub = this.route.paramMap.subscribe((paramMap) => {
+      const id = paramMap.get('id');
+      const segments = this.route.snapshot.url;
+      const lastSegment = segments[segments.length - 1]?.path;
+      const isNewRoute = lastSegment === 'novo';
+      const demandIdFromQuery = this.route.snapshot.queryParamMap.get('demandId');
 
-    if (!isNewRoute && id) {
-      this.docId.set(id);
-      this.loadDoc(id);
-    } else {
-      this.docId.set(null);
-      this.demandId.set(demandIdFromQuery ?? null);
-      this.loading.set(false);
-      if (this.keyMappings().length === 0) this.addKeyMapping();
-      if (this.steps().length === 0) this.addStep();
-    }
+      if (!isNewRoute && id) {
+        this.docId.set(id);
+        this.loadDoc(id);
+      } else {
+        this.docId.set(null);
+        this.demandId.set(demandIdFromQuery ?? null);
+        this.loading.set(false);
+        this.title = '';
+        this.summaryValue = '';
+        this.impactedRepos.set([]);
+        this.generalObservationsValue = '';
+        this.keyMappings.set([]);
+        this.steps.set([]);
+        this.legacyContentValue = '';
+        if (this.keyMappings().length === 0) this.addKeyMapping();
+        if (this.steps().length === 0) this.addStep();
+      }
+    });
   }
 
-  ngOnDestroy(): void {}
+  ngOnDestroy(): void {
+    this.routeParamSub?.unsubscribe();
+  }
 
   private async loadDoc(id: string): Promise<void> {
     this.loading.set(true);
@@ -512,6 +626,10 @@ export class TechDocumentEditorComponent implements OnInit, OnDestroy {
       this.demandId.set(doc.demandId);
       this.title = doc.title ?? '';
       this.summaryValue = doc.summary ?? '';
+      this.impactedRepos.set(Array.isArray(doc.impactedRepos) && doc.impactedRepos.length > 0
+        ? doc.impactedRepos.map((r) => ({ ...r }))
+        : []);
+      this.generalObservationsValue = doc.generalObservations ?? '';
       this.keyMappings.set(doc.keyMappings?.length ? [...doc.keyMappings] : []);
       this.steps.set(doc.steps?.length ? doc.steps.map((s) => ({ ...s })) : []);
       this.legacyContentValue = doc.content ?? '';
@@ -539,6 +657,14 @@ export class TechDocumentEditorComponent implements OnInit, OnDestroy {
     this.keyMappings.update((list) => list.filter((r) => r.id !== row.id));
   }
 
+  addImpactedRepo(): void {
+    this.impactedRepos.update((list) => [...list, this.techService.createImpactedRepo()]);
+  }
+
+  removeImpactedRepo(row: ImpactedRepo): void {
+    this.impactedRepos.update((list) => list.filter((r) => r.id !== row.id));
+  }
+
   addStep(): void {
     const list = this.steps();
     const nextOrder = list.length === 0 ? 1 : Math.max(...list.map((s) => s.order), 0) + 1;
@@ -558,13 +684,13 @@ export class TechDocumentEditorComponent implements OnInit, OnDestroy {
   }
 
   stepDescriptionTrusted(step: TechDocumentStep): SafeHtml {
-    const text = step.description || '';
-    const escaped = text
+    const html = step.description || '';
+    const sanitized = html.includes('<') ? sanitizeStepHtml(html) : html
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/\n/g, '<br>');
-    return this.sanitizer.bypassSecurityTrustHtml(escaped);
+    return this.sanitizer.bypassSecurityTrustHtml(sanitized);
   }
 
   trustedLegacyContent(): SafeHtml {
@@ -612,6 +738,8 @@ export class TechDocumentEditorComponent implements OnInit, OnDestroy {
     const payload = {
       title: this.title.trim() || 'Sem título',
       summary: this.summaryValue.trim(),
+      impactedRepos: this.impactedRepos().filter((r) => r.name?.trim() || r.link?.trim() || r.stack?.trim()),
+      generalObservations: this.generalObservationsValue.trim(),
       keyMappings: this.keyMappings().filter((r) => r.key || r.value || r.ambiente),
       steps: stepsList,
       content: this.legacyContentValue,
@@ -627,6 +755,13 @@ export class TechDocumentEditorComponent implements OnInit, OnDestroy {
   }
 
   exportPdf(): void {
+    const prevTitle = document.title;
+    document.title = ' ';
+    const onAfterPrint = (): void => {
+      document.title = prevTitle;
+      window.removeEventListener('afterprint', onAfterPrint);
+    };
+    window.addEventListener('afterprint', onAfterPrint);
     window.print();
   }
 }

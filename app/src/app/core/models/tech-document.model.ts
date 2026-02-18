@@ -6,6 +6,15 @@ export interface TechKeyMapping {
   ambiente: string;
 }
 
+/** Repositório impactado: Nome, Link e Stack */
+export interface ImpactedRepo {
+  id: string;
+  name: string;
+  link: string;
+  /** Stack do projeto (ex: .NET 8, Angular 21, Node 20) */
+  stack: string;
+}
+
 /** Um passo/tópico da documentação técnica (ex: Step 1: API - Criar novo endpoint) */
 export interface TechDocumentStep {
   id: string;
@@ -24,6 +33,10 @@ export interface TechDocument {
   title: string;
   /** Resumo/contexto (opcional) */
   summary: string;
+  /** Repositórios impactados (tabela Nome, Link) */
+  impactedRepos?: ImpactedRepo[];
+  /** Observações gerais */
+  generalObservations?: string;
   /** Chaves alteradas (opcional) - tabela Key, Value, Ambiente */
   keyMappings: TechKeyMapping[];
   /** Passos da documentação (Step 1, Step 2, ...) */
