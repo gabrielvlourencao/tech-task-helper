@@ -304,12 +304,12 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
             <div class="form-actions">
               @if (viewMode()) {
                 <button type="button" class="btn-primary btn-primary-tech" (click)="switchToEditMode()">Editar documento</button>
-                <button type="button" class="btn-export" (click)="exportPdf()">Exportar PDF</button>
+                <button type="button" class="btn-export" (click)="exportPdf()" title="Para não exibir a URL no PDF, desmarque 'Cabeçalhos e rodapés' nas opções de impressão.">Exportar PDF</button>
                 <a routerLink="/documentos/tech" class="btn-cancel">Voltar à lista</a>
               } @else {
                 <button type="submit" class="btn-primary btn-primary-tech">Salvar</button>
                 @if (docId()) {
-                  <button type="button" class="btn-export" (click)="exportPdf()">Exportar PDF</button>
+                  <button type="button" class="btn-export" (click)="exportPdf()" title="Para não exibir a URL no PDF, desmarque 'Cabeçalhos e rodapés' nas opções de impressão.">Exportar PDF</button>
                 }
                 <a routerLink="/documentos/tech" class="btn-cancel">Cancelar</a>
               }
@@ -415,9 +415,13 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
     .form-control-textarea { resize: vertical; min-height: 72px; }
     .form-control-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; padding-right: 2rem; }
     .table-wrap { overflow-x: auto; margin-bottom: 0.5rem; border: 1px solid #e5e7eb; border-radius: 8px; }
-    .data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; table-layout: fixed; }
     .data-table th, .data-table td { padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; text-align: left; vertical-align: middle; }
     .data-table th { background: #f9fafb; font-weight: 600; color: #374151; }
+    .data-table th:nth-child(1), .data-table td:nth-child(1) { width: 18%; }
+    .data-table th:nth-child(2), .data-table td:nth-child(2) { width: 52%; min-width: 0; overflow: hidden; }
+    .data-table th:nth-child(3), .data-table td:nth-child(3) { width: 18%; }
+    .data-table td:nth-child(2) input { min-width: 0; max-width: 100%; box-sizing: border-box; }
     .form-control-cell { min-height: 38px; padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; }
     .form-control-cell:focus { border-color: #0ea5e9; box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15); }
     .form-control-select.form-control-cell { min-width: 100px; }
@@ -460,36 +464,37 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
     .view-mode-banner-text { flex: 1; min-width: 200px; color: #0e7490; font-size: 0.9rem; }
     .btn-editor-view-mode { padding: 0.5rem 1rem; background: #0ea5e9; color: white; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; }
     .btn-editor-view-mode:hover { background: #0284c7; }
-    .print-area { position: absolute; left: -9999px; top: 0; width: 210mm; background: white; padding: 24px; font-size: 13px; line-height: 1.45; color: #1f2937; }
+    .print-area { position: absolute; left: -9999px; top: 0; width: 210mm; background: white; padding: 24px; font-size: 15px; line-height: 1.5; color: #1f2937; }
     .print-area.print-visible { position: relative; left: 0; max-width: 210mm; margin: 0 auto; }
-    .print-content h1 { font-size: 20px; font-weight: 700; color: #0c4a6e; margin: 0 0 4px 0; }
-    .print-title { font-size: 16px; font-weight: 600; color: #1f2937; margin: 0 0 8px 0; }
-    .print-demand { font-size: 12px; color: #64748b; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb; }
-    .print-section { margin-top: 16px; }
-    .print-content h2 { font-size: 13px; font-weight: 600; color: #374151; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.03em; }
-    .print-body-text { margin: 0; white-space: pre-wrap; line-height: 1.5; color: #374151; }
-    .print-step { margin-top: 14px; padding-top: 12px; border-top: 1px solid #f3f4f6; }
-    .print-step h3 { font-size: 14px; font-weight: 600; color: #0e7490; margin: 0 0 6px 0; }
-    .print-step-desc { font-size: 13px; line-height: 1.5; color: #4b5563; white-space: pre-wrap; }
+    .print-content h1 { font-size: 24px; font-weight: 700; color: #0c4a6e; margin: 0 0 6px 0; }
+    .print-title { font-size: 18px; font-weight: 600; color: #1f2937; margin: 0 0 10px 0; }
+    .print-demand { font-size: 14px; color: #64748b; margin: 0 0 18px 0; padding-bottom: 14px; border-bottom: 1px solid #e5e7eb; }
+    .print-section { margin-top: 20px; }
+    .print-content h2 { font-size: 15px; font-weight: 600; color: #374151; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 0.03em; }
+    .print-body-text { margin: 0; white-space: pre-wrap; line-height: 1.6; color: #374151; font-size: 15px; }
+    .print-step { margin-top: 18px; padding-top: 14px; border-top: 1px solid #f3f4f6; }
+    .print-step h3 { font-size: 16px; font-weight: 600; color: #0e7490; margin: 0 0 8px 0; }
+    .print-step-desc { font-size: 15px; line-height: 1.6; color: #4b5563; white-space: pre-wrap; }
     .print-step-desc :deep(p) { margin: 0 0 0.5rem 0; }
     .print-step-desc :deep(ul), .print-step-desc :deep(ol) { margin: 0.5rem 0; padding-left: 1.25rem; }
     .print-step-desc :deep(img) { max-width: 100%; height: auto; display: block; margin: 0.5rem 0; border-radius: 6px; }
     .step-desc-readonly { white-space: normal; }
     .step-desc-readonly :deep(img) { max-width: 100%; height: auto; display: block; margin: 0.5rem 0; border-radius: 6px; }
-    .print-body { line-height: 1.6; color: #374151; }
-    .rich-print-body h1 { font-size: 16px; font-weight: 700; margin: 0.75rem 0 0.5rem 0; }
-    .rich-print-body h2 { font-size: 14px; font-weight: 600; margin: 0.5rem 0 0.35rem 0; }
-    .rich-print-body h3 { font-size: 13px; font-weight: 600; margin: 0.5rem 0 0.35rem 0; }
-    .rich-print-body table { width: 100%; border-collapse: collapse; margin: 0.5rem 0; font-size: 12px; }
-    .rich-print-body th, .rich-print-body td { border: 1px solid #e5e7eb; padding: 6px 8px; }
+    .print-body { line-height: 1.6; color: #374151; font-size: 15px; }
+    .rich-print-body h1 { font-size: 18px; font-weight: 700; margin: 0.75rem 0 0.5rem 0; }
+    .rich-print-body h2 { font-size: 16px; font-weight: 600; margin: 0.5rem 0 0.35rem 0; }
+    .rich-print-body h3 { font-size: 15px; font-weight: 600; margin: 0.5rem 0 0.35rem 0; }
+    .rich-print-body table { width: 100%; border-collapse: collapse; margin: 0.5rem 0; font-size: 14px; }
+    .rich-print-body th, .rich-print-body td { border: 1px solid #e5e7eb; padding: 8px 10px; }
     .rich-print-body th { background: #f9fafb; font-weight: 600; }
-    .print-content table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 12px; }
-    .print-content table th, .print-content table td { border: 1px solid #e5e7eb; padding: 8px 10px; text-align: left; }
+    .print-content table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 14px; table-layout: fixed; }
+    .print-content table th, .print-content table td { border: 1px solid #e5e7eb; padding: 10px 12px; text-align: left; word-break: break-all; overflow-wrap: break-word; }
     .print-content table th { background: #f9fafb; font-weight: 600; color: #374151; }
-    .print-footer { margin-top: 24px; padding-top: 12px; font-size: 11px; color: #9ca3af; border-top: 1px solid #e5e7eb; }
+    .print-content table td { min-width: 0; }
+    .print-footer { margin-top: 28px; padding-top: 14px; font-size: 13px; color: #6b7280; border-top: 1px solid #e5e7eb; }
     .print-only-page { min-height: 100vh; background: white; padding: 20px; }
     @media print {
-      @page { size: auto; margin: 10mm; }
+      @page { size: auto; margin: 8mm; }
       body * { visibility: hidden !important; }
       .page-container .print-area,
       .page-container .print-area *,

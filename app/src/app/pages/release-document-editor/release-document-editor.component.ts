@@ -236,7 +236,7 @@ import type { Demand } from '../../core/models/demand.model';
             <div class="form-actions">
               @if (viewMode()) {
                 <button type="button" class="btn-primary" (click)="switchToEditMode()">Editar documento</button>
-                <button type="button" class="btn-export" (click)="exportPdf()">Exportar PDF</button>
+                <button type="button" class="btn-export" (click)="exportPdf()" title="Para não exibir a URL no PDF, desmarque 'Cabeçalhos e rodapés' nas opções de impressão.">Exportar PDF</button>
                 <a routerLink="/documentos-release" class="btn-cancel">Voltar à lista</a>
               } @else {
                 <button type="submit" class="btn-primary">Salvar</button>
@@ -244,7 +244,7 @@ import type { Demand } from '../../core/models/demand.model';
                   <button type="button" class="btn-finalize" (click)="finalize()">Finalizar release</button>
                 }
                 @if (docId()) {
-                  <button type="button" class="btn-export" (click)="exportPdf()">Exportar PDF</button>
+                  <button type="button" class="btn-export" (click)="exportPdf()" title="Para não exibir a URL no PDF, desmarque 'Cabeçalhos e rodapés' nas opções de impressão.">Exportar PDF</button>
                 }
                 <a routerLink="/documentos-release" class="btn-cancel">Cancelar</a>
               }
@@ -333,9 +333,13 @@ import type { Demand } from '../../core/models/demand.model';
     .form-control-textarea { resize: vertical; min-height: 96px; }
     .form-control-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; padding-right: 2rem; }
     .table-wrap { overflow-x: auto; margin-bottom: 0.5rem; border: 1px solid #e5e7eb; border-radius: 8px; }
-    .data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; table-layout: fixed; }
     .data-table th, .data-table td { padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; text-align: left; vertical-align: middle; }
     .data-table th { background: #f9fafb; font-weight: 600; color: #374151; }
+    .data-table th:nth-child(1), .data-table td:nth-child(1) { width: 18%; }
+    .data-table th:nth-child(2), .data-table td:nth-child(2) { width: 52%; min-width: 0; overflow: hidden; }
+    .data-table th:nth-child(3), .data-table td:nth-child(3) { width: 18%; }
+    .data-table td:nth-child(2) input { min-width: 0; max-width: 100%; box-sizing: border-box; }
     .data-table tbody tr:hover { background: #fafafa; }
     .form-control-cell { min-height: 38px; padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; }
     .form-control-cell:focus { border-color: #667eea; box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.15); }
@@ -357,26 +361,27 @@ import type { Demand } from '../../core/models/demand.model';
     .btn-export:hover { background: #1f2937; }
     .btn-cancel { padding: 0.625rem 1.25rem; color: #6b7280; text-decoration: none; font-size: 0.9rem; }
     .btn-cancel:hover { color: #374151; }
-    .print-area { position: absolute; left: -9999px; top: 0; width: 210mm; background: white; padding: 24px; font-size: 13px; line-height: 1.45; color: #1f2937; }
+    .print-area { position: absolute; left: -9999px; top: 0; width: 210mm; background: white; padding: 24px; font-size: 15px; line-height: 1.5; color: #1f2937; }
     .print-area.print-visible { position: relative; left: 0; max-width: 210mm; margin: 0 auto; }
     .print-content { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
-    .print-content h1 { font-size: 20px; font-weight: 700; color: #111827; margin: 0 0 4px 0; letter-spacing: -0.02em; }
-    .print-demand { font-size: 13px; color: #4b5563; margin: 0 0 4px 0; font-weight: 500; }
-    .print-status { font-size: 12px; color: #6b7280; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb; }
-    .print-section { margin-top: 16px; padding-top: 12px; border-top: 1px solid #f3f4f6; }
-    .print-content h2 { font-size: 13px; font-weight: 600; color: #374151; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.03em; }
-    .print-content section > p { margin: 0; color: #374151; }
-    .print-content table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 12px; }
-    .print-content table th, .print-content table td { border: 1px solid #e5e7eb; padding: 8px 10px; text-align: left; }
+    .print-content h1 { font-size: 24px; font-weight: 700; color: #111827; margin: 0 0 6px 0; letter-spacing: -0.02em; }
+    .print-demand { font-size: 14px; color: #4b5563; margin: 0 0 6px 0; font-weight: 500; }
+    .print-status { font-size: 13px; color: #6b7280; margin: 0 0 18px 0; padding-bottom: 14px; border-bottom: 1px solid #e5e7eb; }
+    .print-section { margin-top: 20px; padding-top: 14px; border-top: 1px solid #f3f4f6; }
+    .print-content h2 { font-size: 15px; font-weight: 600; color: #374151; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 0.03em; }
+    .print-content section > p { margin: 0; color: #374151; font-size: 15px; line-height: 1.6; }
+    .print-content table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 14px; table-layout: fixed; }
+    .print-content table th, .print-content table td { border: 1px solid #e5e7eb; padding: 10px 12px; text-align: left; word-break: break-all; overflow-wrap: break-word; }
     .print-content table th { background: #f9fafb; font-weight: 600; color: #374151; }
+    .print-content table td { min-width: 0; }
     .print-content table tbody tr:nth-child(even) { background: #fafafa; }
-    .print-repos-list { margin: 0; padding-left: 20px; list-style: disc; }
-    .print-repos-list li { margin-bottom: 6px; }
+    .print-repos-list { margin: 0; padding-left: 20px; list-style: disc; font-size: 15px; }
+    .print-repos-list li { margin-bottom: 8px; }
     .print-repo-link { color: #2563eb; text-decoration: underline; }
     .print-repo-link:hover { color: #1d4ed8; }
-    .print-repo-url { font-size: 11px; color: #6b7280; word-break: break-all; }
-    .print-observacoes { margin: 0; white-space: pre-wrap; line-height: 1.5; color: #374151; }
-    .print-footer { margin-top: 24px; padding-top: 12px; font-size: 11px; color: #9ca3af; border-top: 1px solid #e5e7eb; }
+    .print-repo-url { font-size: 13px; color: #6b7280; word-break: break-all; }
+    .print-observacoes { margin: 0; white-space: pre-wrap; line-height: 1.6; color: #374151; font-size: 15px; }
+    .print-footer { margin-top: 28px; padding-top: 14px; font-size: 13px; color: #6b7280; border-top: 1px solid #e5e7eb; }
     .demand-select-section { background: white; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .demand-select-section label { display: block; font-size: 0.85rem; font-weight: 500; color: #374151; margin-bottom: 0.5rem; }
     .demand-combobox { position: relative; max-width: 520px; }
@@ -401,7 +406,7 @@ import type { Demand } from '../../core/models/demand.model';
     .btn-editor-view-mode:hover { background: #047857; }
     .print-only-page { min-height: 100vh; background: white; padding: 20px; }
     @media print {
-      @page { size: auto; margin: 10mm; }
+      @page { size: auto; margin: 8mm; }
       body * { visibility: hidden !important; }
       .page-container .print-area,
       .page-container .print-area * { visibility: visible !important; }
