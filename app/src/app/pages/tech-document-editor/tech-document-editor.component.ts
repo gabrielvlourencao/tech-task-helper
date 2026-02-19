@@ -194,13 +194,13 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
               <h3>Repos impactados</h3>
               <p class="hint">Repositórios impactados pela solução: Nome, Link e Stack do projeto.</p>
               <div class="table-wrap">
-                <table class="data-table">
+                <table class="data-table data-table-repos">
                   <thead>
                     <tr>
                       <th>Nome</th>
                       <th>Link</th>
                       <th>Stack</th>
-                      <th></th>
+                      @if (!viewMode()) { <th class="col-remove"></th> }
                     </tr>
                   </thead>
                   <tbody>
@@ -209,7 +209,7 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
                         <td><input type="text" class="form-control form-control-cell" [(ngModel)]="row.name" [ngModelOptions]="{standalone: true}" placeholder="Nome do repo" [disabled]="viewMode()" /></td>
                         <td><input type="url" class="form-control form-control-cell" [(ngModel)]="row.link" [ngModelOptions]="{standalone: true}" placeholder="https://..." [disabled]="viewMode()" /></td>
                         <td><input type="text" class="form-control form-control-cell" [(ngModel)]="row.stack" [ngModelOptions]="{standalone: true}" placeholder="Ex: .NET 8, Angular 21" [disabled]="viewMode()" /></td>
-                        <td>@if (!viewMode()) { <button type="button" class="btn-remove-row" (click)="removeImpactedRepo(row)" title="Remover">×</button> }</td>
+                        @if (!viewMode()) { <td class="col-remove"><button type="button" class="btn-remove-row" (click)="removeImpactedRepo(row)" title="Remover">×</button></td> }
                       </tr>
                     }
                   </tbody>
@@ -230,7 +230,7 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
                       <th>Key</th>
                       <th>Value</th>
                       <th>Ambiente</th>
-                      <th></th>
+                      @if (!viewMode()) { <th class="col-remove"></th> }
                     </tr>
                   </thead>
                   <tbody>
@@ -246,7 +246,7 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
                             }
                           </select>
                         </td>
-                        <td>@if (!viewMode()) { <button type="button" class="btn-remove-row" (click)="removeKeyMapping(row)" title="Remover">×</button> }</td>
+                        @if (!viewMode()) { <td class="col-remove"><button type="button" class="btn-remove-row" (click)="removeKeyMapping(row)" title="Remover">×</button></td> }
                       </tr>
                     }
                   </tbody>
@@ -298,7 +298,7 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
             <section class="form-section">
               <h3>Observações gerais</h3>
               <p class="hint">Observações ou notas adicionais sobre o documento.</p>
-              <textarea id="doc-general-observations" class="form-control form-control-textarea" [(ngModel)]="generalObservationsValue" name="generalObservations" rows="3" placeholder="Observações gerais..." [disabled]="viewMode()"></textarea>
+              <textarea id="doc-general-observations" class="form-control form-control-textarea form-control-observations" [(ngModel)]="generalObservationsValue" name="generalObservations" rows="8" placeholder="Observações gerais..." [disabled]="viewMode()"></textarea>
             </section>
 
             <div class="form-actions">
@@ -392,7 +392,8 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
   `,
   styles: [`
     .page-container { min-height: 100vh; background: #f3f4f6; }
-    .main-content { max-width: 800px; margin: 0 auto; padding: 2rem; }
+    .main-content { width: 100%; max-width: 1100px; margin: 0 auto; padding: 2rem; box-sizing: border-box; }
+    @media (max-width: 768px) { .main-content { padding: 1rem; } }
     .content-header { margin-bottom: 1.5rem; }
     .back-link { display: inline-block; color: #0ea5e9; text-decoration: none; font-size: 0.9rem; margin-bottom: 0.5rem; }
     .back-link:hover { text-decoration: underline; }
@@ -413,19 +414,24 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
     .form-control:focus { outline: none; border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2); }
     .form-control:disabled { background: #f3f4f6; color: #6b7280; cursor: not-allowed; }
     .form-control-textarea { resize: vertical; min-height: 72px; }
+    .form-control-observations { min-height: 200px; }
     .form-control-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; padding-right: 2rem; }
     .table-wrap { overflow-x: auto; margin-bottom: 0.5rem; border: 1px solid #e5e7eb; border-radius: 8px; }
     .data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; table-layout: fixed; }
     .data-table th, .data-table td { padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; text-align: left; vertical-align: middle; }
     .data-table th { background: #f9fafb; font-weight: 600; color: #374151; }
-    .data-table th:nth-child(1), .data-table td:nth-child(1) { width: 18%; }
-    .data-table th:nth-child(2), .data-table td:nth-child(2) { width: 52%; min-width: 0; overflow: hidden; }
-    .data-table th:nth-child(3), .data-table td:nth-child(3) { width: 18%; }
+    .data-table th:nth-child(1), .data-table td:nth-child(1) { width: 28%; }
+    .data-table th:nth-child(2), .data-table td:nth-child(2) { width: 50%; min-width: 0; overflow: hidden; }
+    .data-table th:nth-child(3), .data-table td:nth-child(3) { width: 12%; }
     .data-table td:nth-child(2) input { min-width: 0; max-width: 100%; box-sizing: border-box; }
+    .data-table .col-remove { width: 36px; min-width: 36px; max-width: 36px; padding: 0.25rem; text-align: center; }
+    .data-table-repos th:nth-child(1), .data-table-repos td:nth-child(1) { width: 20%; }
+    .data-table-repos th:nth-child(2), .data-table-repos td:nth-child(2) { width: 42%; }
+    .data-table-repos th:nth-child(3), .data-table-repos td:nth-child(3) { width: 22%; }
     .form-control-cell { min-height: 38px; padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; }
     .form-control-cell:focus { border-color: #0ea5e9; box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15); }
     .form-control-select.form-control-cell { min-width: 100px; }
-    .btn-remove-row { width: 28px; height: 28px; border: none; background: #fee2e2; color: #dc2626; border-radius: 6px; cursor: pointer; font-size: 1.2rem; line-height: 1; flex-shrink: 0; }
+    .btn-remove-row { width: 24px; height: 24px; border: none; background: #fee2e2; color: #dc2626; border-radius: 6px; cursor: pointer; font-size: 1.1rem; line-height: 1; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
     .btn-remove-row:hover { background: #fecaca; }
     .btn-add-row { padding: 0.5rem 0.75rem; border: 1px dashed #d1d5db; background: #f9fafb; border-radius: 8px; font-size: 0.85rem; color: #6b7280; cursor: pointer; }
     .btn-add-row:hover { background: #f0f9ff; border-color: #0ea5e9; color: #0369a1; }
