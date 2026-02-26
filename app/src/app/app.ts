@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { AuthService } from './core';
+import { AuthService, ThemeService } from './core';
 
 @Component({
   selector: 'app-root',
@@ -23,7 +23,7 @@ import { AuthService } from './core';
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: var(--accent-gradient);
       color: white;
     }
 
@@ -49,5 +49,6 @@ import { AuthService } from './core';
 })
 export class App {
   private authService = inject(AuthService);
+  private themeService = inject(ThemeService);
   loading = this.authService.loading;
 }

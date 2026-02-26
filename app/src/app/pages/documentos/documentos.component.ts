@@ -66,7 +66,7 @@ import { HeaderComponent } from '../../components/header/header.component';
     </div>
   `,
   styles: [`
-    .page-container { min-height: 100vh; background: #f3f4f6; }
+    .page-container { min-height: 100vh; background: var(--bg-page); }
     .main-content { max-width: 1000px; margin: 0 auto; padding: 2rem; }
 
     .doc-tabs {
@@ -84,18 +84,18 @@ import { HeaderComponent } from '../../components/header/header.component';
       padding: 0.875rem 1.25rem;
       border-radius: 10px 10px 0 0;
       text-decoration: none;
-      color: #6b7280;
+      color: var(--text-tertiary);
       font-weight: 500;
       transition: all 0.2s ease;
       border: 2px solid transparent;
       border-bottom: none;
       margin-bottom: -2px;
-      background: #f9fafb;
+      background: var(--bg-surface-hover);
     }
 
     .tab:hover {
-      color: #374151;
-      background: #f3f4f6;
+      color: var(--text-secondary);
+      background: var(--bg-surface-alt);
     }
 
     .tab-icon {
@@ -111,7 +111,7 @@ import { HeaderComponent } from '../../components/header/header.component';
     .tab-desc {
       font-size: 0.75rem;
       font-weight: 400;
-      color: #9ca3af;
+      color: var(--text-muted);
       margin-left: 0.25rem;
     }
 

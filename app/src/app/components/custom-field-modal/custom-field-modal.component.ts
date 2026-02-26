@@ -99,7 +99,7 @@ import { CustomField } from '../../core';
     }
 
     .modal-content {
-      background: white;
+      background: var(--bg-surface);
       border-radius: 12px;
       width: 100%;
       max-width: 400px;
@@ -123,13 +123,13 @@ import { CustomField } from '../../core';
       justify-content: space-between;
       align-items: center;
       padding: 1rem 1.25rem;
-      border-bottom: 1px solid #e5e7eb;
+      border-bottom: 1px solid var(--border);
     }
 
     .modal-header h3 {
       font-size: 1rem;
       font-weight: 600;
-      color: #1f2937;
+      color: var(--text-primary);
       margin: 0;
     }
 
@@ -140,15 +140,15 @@ import { CustomField } from '../../core';
       padding: 0.375rem;
       background: transparent;
       border: none;
-      color: #6b7280;
+      color: var(--text-tertiary);
       cursor: pointer;
       border-radius: 6px;
       transition: all 0.2s ease;
     }
 
     .btn-close:hover {
-      background: #f3f4f6;
-      color: #1f2937;
+      background: var(--bg-surface-alt);
+      color: var(--text-primary);
     }
 
     .modal-body {
@@ -167,14 +167,14 @@ import { CustomField } from '../../core';
       display: block;
       font-size: 0.8rem;
       font-weight: 500;
-      color: #374151;
+      color: var(--text-secondary);
       margin-bottom: 0.5rem;
     }
 
     .form-group input[type="text"] {
       width: 100%;
       padding: 0.625rem 0.875rem;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       border-radius: 8px;
       font-size: 0.9rem;
       transition: all 0.2s ease;
@@ -206,12 +206,12 @@ import { CustomField } from '../../core';
     }
 
     .color-btn.selected {
-      border-color: #1f2937;
+      border-color: var(--text-primary);
       box-shadow: 0 0 0 2px white, 0 0 0 4px currentColor;
     }
 
     .preview {
-      background: #f9fafb;
+      background: var(--bg-surface-hover);
       padding: 1rem;
       border-radius: 8px;
     }
@@ -220,7 +220,7 @@ import { CustomField } from '../../core';
       display: block;
       font-size: 0.75rem;
       font-weight: 500;
-      color: #6b7280;
+      color: var(--text-tertiary);
       margin-bottom: 0.5rem;
     }
 
@@ -239,25 +239,25 @@ import { CustomField } from '../../core';
       justify-content: flex-end;
       gap: 0.5rem;
       padding: 1rem 1.25rem;
-      background: #f9fafb;
+      background: var(--bg-surface-hover);
       border-top: 1px solid #e5e7eb;
       border-radius: 0 0 12px 12px;
     }
 
     .btn-cancel {
       padding: 0.625rem 1rem;
-      background: white;
-      border: 1px solid #e5e7eb;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
       border-radius: 8px;
       font-size: 0.875rem;
       font-weight: 500;
-      color: #374151;
+      color: var(--text-secondary);
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
     .btn-cancel:hover {
-      background: #f3f4f6;
+      background: var(--bg-surface-alt);
     }
 
     .btn-save {

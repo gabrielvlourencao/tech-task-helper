@@ -1,6 +1,61 @@
 /* Import Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* ===== Theme Variables ===== */
+:root {
+  --bg-page: #f3f4f6;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f9fafb;
+  --bg-surface-alt: #f3f4f6;
+  --bg-input: #ffffff;
+
+  --text-primary: #1f2937;
+  --text-secondary: #374151;
+  --text-tertiary: #6b7280;
+  --text-muted: #9ca3af;
+
+  --border: #e5e7eb;
+  --border-light: #f3f4f6;
+  --border-medium: #d1d5db;
+
+  --accent: #667eea;
+  --accent-hover: #5a67d8;
+  --accent-bg: #eef2ff;
+  --accent-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] {
+  --bg-page: #0f172a;
+  --bg-surface: #1e293b;
+  --bg-surface-hover: #283548;
+  --bg-surface-alt: #162032;
+  --bg-input: #0f172a;
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #94a3b8;
+  --text-muted: #64748b;
+
+  --border: #334155;
+  --border-light: #253244;
+  --border-medium: #475569;
+
+  --accent: #818cf8;
+  --accent-hover: #6366f1;
+  --accent-bg: rgba(129, 140, 248, 0.15);
+  --accent-gradient: linear-gradient(135deg, #818cf8 0%, #a78bfa 100%);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 20px rgba(0, 0, 0, 0.4);
+
+  color-scheme: dark;
+}
+
 /* CSS Reset & Base Styles */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -17,8 +72,9 @@ html {
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
   line-height: 1.5;
-  color: #1f2937;
-  background: #f3f4f6;
+  color: var(--text-primary);
+  background: var(--bg-page);
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 /* Remove default button styles */
@@ -60,28 +116,28 @@ img {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--bg-surface-alt);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: var(--border-medium);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a1a1a1;
+  background: var(--text-muted);
 }
 
 /* Selection Color */
 ::selection {
-  background: #667eea;
+  background: var(--accent);
   color: white;
 }
 
 /* Focus Styles */
 :focus-visible {
-  outline: 2px solid #667eea;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 

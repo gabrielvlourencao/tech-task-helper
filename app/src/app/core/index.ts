@@ -11,6 +11,7 @@ export * from './services/demand.service';
 export * from './services/daily-report.service';
 export * from './services/release-document.service';
 export * from './services/tech-document.service';
+export * from './services/theme.service';
 
 // Guards
 export * from './guards/auth.guard';

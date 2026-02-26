@@ -150,7 +150,7 @@ import { Demand, Priority, DemandStatus, PRIORITY_CONFIG, STATUS_CONFIG } from '
     }
 
     .modal-content {
-      background: white;
+      background: var(--bg-surface);
       border-radius: 16px;
       width: 100%;
       max-width: 540px;
@@ -176,13 +176,13 @@ import { Demand, Priority, DemandStatus, PRIORITY_CONFIG, STATUS_CONFIG } from '
       justify-content: space-between;
       align-items: center;
       padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid #e5e7eb;
+      border-bottom: 1px solid var(--border);
     }
 
     .modal-header h2 {
       font-size: 1.25rem;
       font-weight: 600;
-      color: #1f2937;
+      color: var(--text-primary);
       margin: 0;
     }
 
@@ -193,15 +193,15 @@ import { Demand, Priority, DemandStatus, PRIORITY_CONFIG, STATUS_CONFIG } from '
       padding: 0.5rem;
       background: transparent;
       border: none;
-      color: #6b7280;
+      color: var(--text-tertiary);
       cursor: pointer;
       border-radius: 8px;
       transition: all 0.2s ease;
     }
 
     .btn-close:hover {
-      background: #f3f4f6;
-      color: #1f2937;
+      background: var(--bg-surface-alt);
+      color: var(--text-primary);
     }
 
     .modal-body {
@@ -220,14 +220,14 @@ import { Demand, Priority, DemandStatus, PRIORITY_CONFIG, STATUS_CONFIG } from '
       display: block;
       font-size: 0.875rem;
       font-weight: 500;
-      color: #374151;
+      color: var(--text-secondary);
       margin-bottom: 0.5rem;
     }
 
     .form-group input[type="text"] {
       width: 100%;
       padding: 0.75rem 1rem;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       border-radius: 10px;
       font-size: 0.95rem;
       transition: all 0.2s ease;
@@ -266,12 +266,12 @@ import { Demand, Priority, DemandStatus, PRIORITY_CONFIG, STATUS_CONFIG } from '
       flex: 1;
       min-width: 80px;
       padding: 0.625rem 1rem;
-      border: 2px solid #e5e7eb;
+      border: 2px solid var(--border);
       border-radius: 10px;
-      background: white;
+      background: var(--bg-surface);
       font-size: 0.875rem;
       font-weight: 500;
-      color: #6b7280;
+      color: var(--text-tertiary);
       cursor: pointer;
       transition: all 0.2s ease;
     }
@@ -298,12 +298,12 @@ import { Demand, Priority, DemandStatus, PRIORITY_CONFIG, STATUS_CONFIG } from '
       align-items: center;
       gap: 0.375rem;
       padding: 0.5rem 0.75rem;
-      border: 2px solid #e5e7eb;
+      border: 2px solid var(--border);
       border-radius: 10px;
-      background: white;
+      background: var(--bg-surface);
       font-size: 0.8rem;
       font-weight: 500;
-      color: #6b7280;
+      color: var(--text-tertiary);
       cursor: pointer;
       transition: all 0.2s ease;
     }
@@ -339,7 +339,7 @@ import { Demand, Priority, DemandStatus, PRIORITY_CONFIG, STATUS_CONFIG } from '
 
     .checkbox-text {
       font-size: 0.9rem;
-      color: #374151;
+      color: var(--text-secondary);
       line-height: 1.5;
     }
 
@@ -348,25 +348,25 @@ import { Demand, Priority, DemandStatus, PRIORITY_CONFIG, STATUS_CONFIG } from '
       justify-content: flex-end;
       gap: 0.75rem;
       padding: 1rem 1.5rem;
-      background: #f9fafb;
+      background: var(--bg-surface-hover);
       border-top: 1px solid #e5e7eb;
       border-radius: 0 0 16px 16px;
     }
 
     .btn-cancel {
       padding: 0.75rem 1.25rem;
-      background: white;
-      border: 1px solid #e5e7eb;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
       border-radius: 10px;
       font-size: 0.95rem;
       font-weight: 500;
-      color: #374151;
+      color: var(--text-secondary);
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
     .btn-cancel:hover {
-      background: #f3f4f6;
+      background: var(--bg-surface-alt);
     }
 
     .btn-save {

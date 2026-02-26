@@ -108,33 +108,33 @@ import type { ReleaseDocument } from '../../core/models/release-document.model';
   styles: [`
     .content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
     .header-left { display: flex; align-items: center; gap: 1rem; }
-    .header-left h2 { font-size: 1.5rem; font-weight: 600; color: #1f2937; margin: 0; }
-    .doc-count { background: #e5e7eb; color: #6b7280; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.875rem; font-weight: 500; }
+    .header-left h2 { font-size: 1.5rem; font-weight: 600; color: var(--text-primary); margin: 0; }
+    .doc-count { background: var(--border); color: var(--text-tertiary); padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.875rem; font-weight: 500; }
     .btn-primary { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.625rem 1.25rem; background: #667eea; color: white; border-radius: 8px; font-weight: 500; text-decoration: none; transition: all 0.2s; }
     .btn-primary:hover { background: #5a67d8; }
-    .filters-section { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; background: white; padding: 1rem; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .filters-section { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; background: var(--bg-surface); padding: 1rem; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .filter-group { display: flex; flex-direction: column; gap: 0.25rem; min-width: 200px; }
-    .filter-group label { font-size: 0.8rem; font-weight: 500; color: #6b7280; }
-    .filter-group select { padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 0.875rem; background: white; }
+    .filter-group label { font-size: 0.8rem; font-weight: 500; color: var(--text-tertiary); }
+    .filter-group select { padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.875rem; background: var(--bg-surface); }
     .loading-state, .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 2rem; text-align: center; }
     .spinner-lg { width: 48px; height: 48px; border: 4px solid #e5e7eb; border-top-color: #667eea; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .empty-icon { color: #9ca3af; margin-bottom: 1rem; }
-    .empty-state h3 { font-size: 1.25rem; font-weight: 600; color: #374151; margin: 0 0 0.5rem 0; }
-    .empty-state p { color: #6b7280; margin: 0 0 1rem 0; }
+    .empty-icon { color: var(--text-muted); margin-bottom: 1rem; }
+    .empty-state h3 { font-size: 1.25rem; font-weight: 600; color: var(--text-secondary); margin: 0 0 0.5rem 0; }
+    .empty-state p { color: var(--text-tertiary); margin: 0 0 1rem 0; }
     .docs-list { display: grid; gap: 1rem; }
-    .doc-card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; transition: all 0.2s; }
+    .doc-card { background: var(--bg-surface); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; transition: all 0.2s; }
     .doc-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
     .doc-card.finalizado { border-left: 4px solid #10b981; }
-    .doc-card-header { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: #f9fafb; border-bottom: 1px solid #f3f4f6; }
+    .doc-card-header { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: var(--bg-surface-hover); border-bottom: 1px solid var(--border-light); }
     .demand-badge { font-family: monospace; font-size: 0.8rem; font-weight: 600; color: #667eea; background: #eef2ff; padding: 0.2rem 0.5rem; border-radius: 6px; }
     .status-badge { font-size: 0.75rem; font-weight: 500; padding: 0.2rem 0.5rem; border-radius: 12px; background: #fef3c7; color: #d97706; }
     .status-badge.finalizado { background: #d1fae5; color: #059669; }
     .doc-card-body { padding: 1rem; }
-    .doc-title { font-weight: 600; color: #1f2937; margin: 0 0 0.5rem 0; font-size: 1rem; }
-    .doc-meta, .doc-updated { font-size: 0.8rem; color: #6b7280; margin: 0; }
+    .doc-title { font-weight: 600; color: var(--text-primary); margin: 0 0 0.5rem 0; font-size: 1rem; }
+    .doc-meta, .doc-updated { font-size: 0.8rem; color: var(--text-tertiary); margin: 0; }
     .doc-card-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0.75rem 1rem; border-top: 1px solid #f3f4f6; }
-    .btn-action { padding: 0.375rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-weight: 500; text-decoration: none; border: 1px solid #e5e7eb; background: white; color: #374151; cursor: pointer; transition: all 0.2s; }
+    .btn-action { padding: 0.375rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-weight: 500; text-decoration: none; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: all 0.2s; }
     .btn-action.btn-edit { color: #667eea; }
     .btn-action.btn-edit:hover { background: #eef2ff; }
     .btn-action.btn-finalize { color: #059669; }
@@ -145,8 +145,8 @@ import type { ReleaseDocument } from '../../core/models/release-document.model';
     .btn-action.btn-delete:hover { background: #fee2e2; }
     .btn-action.btn-view { color: #059669; }
     .btn-action.btn-view:hover { background: #d1fae5; }
-    .btn-action.btn-export-pdf { color: #374151; }
-    .btn-action.btn-export-pdf:hover { background: #f3f4f6; }
+    .btn-action.btn-export-pdf { color: var(--text-secondary); }
+    .btn-action.btn-export-pdf:hover { background: var(--bg-surface-alt); }
   `]
 })
 export class ReleaseDocumentsListComponent {

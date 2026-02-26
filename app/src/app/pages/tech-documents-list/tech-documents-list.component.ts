@@ -101,38 +101,38 @@ import type { TechDocument } from '../../core/models/tech-document.model';
     .btn-primary { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.625rem 1.25rem; border-radius: 8px; font-weight: 500; text-decoration: none; transition: all 0.2s; }
     .btn-primary-tech { background: #0ea5e9; color: white; }
     .btn-primary-tech:hover { background: #0284c7; }
-    .filter-section-tech { margin-bottom: 1.5rem; background: white; padding: 1rem; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #0ea5e9; }
+    .filter-section-tech { margin-bottom: 1.5rem; background: var(--bg-surface); padding: 1rem; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #0ea5e9; }
     .filter-group { display: flex; flex-direction: column; gap: 0.25rem; min-width: 200px; }
-    .filter-group label { font-size: 0.8rem; font-weight: 500; color: #6b7280; }
-    .filter-group select { padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 0.875rem; background: white; }
+    .filter-group label { font-size: 0.8rem; font-weight: 500; color: var(--text-tertiary); }
+    .filter-group select { padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.875rem; background: var(--bg-surface); }
     .loading-state, .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 2rem; text-align: center; }
     .spinner-lg { width: 48px; height: 48px; border: 4px solid #e5e7eb; border-radius: 50%; animation: spin 0.8s linear infinite; }
     .spinner-tech { border-top-color: #0ea5e9; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .empty-icon { color: #7dd3fc; margin-bottom: 1rem; }
     .empty-state-tech h3 { font-size: 1.25rem; font-weight: 600; color: #0c4a6e; margin: 0 0 0.5rem 0; }
-    .empty-state p { color: #6b7280; margin: 0 0 1rem 0; }
+    .empty-state p { color: var(--text-tertiary); margin: 0 0 1rem 0; }
     .docs-list { display: grid; gap: 1rem; }
-    .doc-card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; transition: all 0.2s; }
+    .doc-card { background: var(--bg-surface); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; transition: all 0.2s; }
     .doc-card-tech { border-left: 4px solid #0ea5e9; }
     .doc-card-tech:hover { box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15); }
     .doc-card-header { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: #f0f9ff; border-bottom: 1px solid #e0f2fe; }
     .demand-badge-tech { font-family: monospace; font-size: 0.8rem; font-weight: 600; color: #0369a1; background: #e0f2fe; padding: 0.2rem 0.5rem; border-radius: 6px; }
     .no-demand-badge { font-size: 0.75rem; color: #64748b; background: #f1f5f9; padding: 0.2rem 0.5rem; border-radius: 6px; }
     .doc-card-body { padding: 1rem; }
-    .doc-title { font-weight: 600; color: #1f2937; margin: 0 0 0.5rem 0; font-size: 1rem; }
+    .doc-title { font-weight: 600; color: var(--text-primary); margin: 0 0 0.5rem 0; font-size: 1rem; }
     .doc-preview { font-size: 0.85rem; color: #64748b; margin: 0 0 0.5rem 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .doc-updated { font-size: 0.8rem; color: #94a3b8; margin: 0; }
     .doc-card-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0.75rem 1rem; border-top: 1px solid #f3f4f6; }
-    .btn-action { padding: 0.375rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-weight: 500; text-decoration: none; border: 1px solid #e5e7eb; background: white; color: #374151; cursor: pointer; transition: all 0.2s; }
+    .btn-action { padding: 0.375rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-weight: 500; text-decoration: none; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: all 0.2s; }
     .btn-action.btn-edit { color: #0ea5e9; }
     .btn-action.btn-edit:hover { background: #e0f2fe; }
     .btn-action.btn-delete { color: #dc2626; }
     .btn-action.btn-delete:hover { background: #fee2e2; }
     .btn-action.btn-view { color: #059669; }
     .btn-action.btn-view:hover { background: #d1fae5; }
-    .btn-action.btn-export-pdf { color: #374151; }
-    .btn-action.btn-export-pdf:hover { background: #f3f4f6; }
+    .btn-action.btn-export-pdf { color: var(--text-secondary); }
+    .btn-action.btn-export-pdf:hover { background: var(--bg-surface-alt); }
   `]
 })
 export class TechDocumentsListComponent {

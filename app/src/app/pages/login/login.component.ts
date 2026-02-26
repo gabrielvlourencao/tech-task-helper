@@ -57,7 +57,7 @@ import { AuthService } from '../../core';
     }
 
     .login-card {
-      background: white;
+      background: var(--bg-surface);
       padding: 3rem 2.5rem;
       border-radius: 16px;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
@@ -85,12 +85,12 @@ import { AuthService } from '../../core';
     h1 {
       font-size: 1.75rem;
       font-weight: 700;
-      color: #1f2937;
+      color: var(--text-primary);
       margin: 0 0 0.5rem 0;
     }
 
     .subtitle {
-      color: #6b7280;
+      color: var(--text-tertiary);
       font-size: 0.95rem;
       margin: 0;
     }
@@ -103,11 +103,11 @@ import { AuthService } from '../../core';
       width: 100%;
       padding: 0.875rem 1.5rem;
       background: white;
-      border: 2px solid #e5e7eb;
+      border: 2px solid var(--border);
       border-radius: 12px;
       font-size: 1rem;
       font-weight: 500;
-      color: #374151;
+      color: var(--text-secondary);
       cursor: pointer;
       transition: all 0.2s ease;
     }
@@ -127,7 +127,7 @@ import { AuthService } from '../../core';
     .spinner {
       width: 20px;
       height: 20px;
-      border: 2px solid #e5e7eb;
+      border: 2px solid var(--border);
       border-top-color: #667eea;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;

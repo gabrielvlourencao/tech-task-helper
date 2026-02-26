@@ -199,7 +199,7 @@ interface DailyEntry {
   styles: [`
     .report-container {
       min-height: 100vh;
-      background: #f3f4f6;
+      background: var(--bg-page);
     }
 
     .main-content {
@@ -226,21 +226,21 @@ interface DailyEntry {
       align-items: center;
       justify-content: center;
       padding: 0.5rem;
-      color: #6b7280;
+      color: var(--text-tertiary);
       text-decoration: none;
       border-radius: 8px;
       transition: all 0.2s ease;
     }
 
     .back-link:hover {
-      background: #e5e7eb;
-      color: #374151;
+      background: var(--border);
+      color: var(--text-secondary);
     }
 
     .header-left h2 {
       font-size: 1.25rem;
       font-weight: 600;
-      color: #1f2937;
+      color: var(--text-primary);
       margin: 0;
     }
 
@@ -269,7 +269,7 @@ interface DailyEntry {
       align-items: center;
       gap: 0.375rem;
       font-size: 0.8125rem;
-      color: #6b7280;
+      color: var(--text-tertiary);
       cursor: pointer;
       user-select: none;
     }
@@ -290,17 +290,17 @@ interface DailyEntry {
       align-items: center;
       gap: 0.375rem;
       padding: 0.375rem 0.625rem;
-      background: white;
-      border: 1px solid #e5e7eb;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
       border-radius: 6px;
       font-size: 0.75rem;
-      color: #6b7280;
+      color: var(--text-tertiary);
       cursor: pointer;
       transition: all 0.2s ease;
     }
     
     .date-btn:hover {
-      background: #f3f4f6;
+      background: var(--bg-surface-alt);
       border-color: #d1d5db;
     }
     
@@ -350,17 +350,17 @@ interface DailyEntry {
       align-items: center;
       justify-content: center;
       padding: 0.5rem;
-      background: white;
-      border: 1px solid #e5e7eb;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
       border-radius: 8px;
-      color: #6b7280;
+      color: var(--text-tertiary);
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
     .btn-icon:hover:not(:disabled) {
-      background: #f3f4f6;
-      color: #374151;
+      background: var(--bg-surface-alt);
+      color: var(--text-secondary);
     }
     
     .btn-icon:disabled {
@@ -401,7 +401,7 @@ interface DailyEntry {
 
     /* Report Principal */
     .report-main {
-      background: white;
+      background: var(--bg-surface);
       border-radius: 12px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
       overflow: hidden;
@@ -415,7 +415,7 @@ interface DailyEntry {
       margin: 0;
       font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
       font-size: 0.8rem;
-      color: #374151;
+      color: var(--text-secondary);
       white-space: pre-wrap;
       line-height: 1.7;
     }
@@ -428,7 +428,7 @@ interface DailyEntry {
     }
 
     .sidebar-section {
-      background: white;
+      background: var(--bg-surface);
       border-radius: 10px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
       overflow: hidden;
@@ -439,10 +439,10 @@ interface DailyEntry {
       justify-content: space-between;
       align-items: center;
       padding: 0.625rem 0.75rem;
-      background: #f9fafb;
+      background: var(--bg-surface-hover);
       font-size: 0.8rem;
       font-weight: 500;
-      color: #374151;
+      color: var(--text-secondary);
       border-bottom: 1px solid #f3f4f6;
     }
 
@@ -454,7 +454,7 @@ interface DailyEntry {
       height: 20px;
       background: transparent;
       border: none;
-      color: #9ca3af;
+      color: var(--text-muted);
       font-size: 1rem;
       cursor: pointer;
       border-radius: 4px;
@@ -496,7 +496,7 @@ interface DailyEntry {
     }
 
     .edit-demand {
-      background: #f9fafb;
+      background: var(--bg-surface-hover);
       border-radius: 6px;
       padding: 0.5rem;
       margin-bottom: 0.375rem;
@@ -526,9 +526,9 @@ interface DailyEntry {
       align-items: center;
       gap: 0.375rem;
       padding: 0.25rem 0.375rem;
-      background: white;
+      background: var(--bg-surface);
       border-radius: 4px;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
     }
 
     .edit-task-item:hover {
@@ -538,7 +538,7 @@ interface DailyEntry {
     .edit-task-text {
       flex: 1;
       font-size: 0.7rem;
-      color: #374151;
+      color: var(--text-secondary);
       cursor: text;
       padding: 0.125rem 0;
     }
@@ -577,7 +577,7 @@ interface DailyEntry {
     }
 
     .edit-task-item:hover .btn-remove-task {
-      color: #9ca3af;
+      color: var(--text-muted);
     }
 
     .btn-remove-task:hover {
@@ -587,7 +587,7 @@ interface DailyEntry {
 
     .empty-text {
       font-size: 0.75rem;
-      color: #9ca3af;
+      color: var(--text-muted);
       text-align: center;
       margin: 0;
       padding: 1rem 0;
@@ -603,7 +603,7 @@ interface DailyEntry {
       align-items: center;
       gap: 0.375rem;
       padding: 0.375rem 0.5rem;
-      background: #f9fafb;
+      background: var(--bg-surface-hover);
       border-radius: 6px;
       margin-bottom: 0.375rem;
     }
@@ -615,7 +615,7 @@ interface DailyEntry {
     .comment-text {
       flex: 1;
       font-size: 0.75rem;
-      color: #374151;
+      color: var(--text-secondary);
       cursor: text;
     }
 
@@ -643,7 +643,7 @@ interface DailyEntry {
     }
 
     .comment-item:hover .btn-remove-mini {
-      color: #9ca3af;
+      color: var(--text-muted);
     }
 
     .btn-remove-mini:hover {
@@ -660,7 +660,7 @@ interface DailyEntry {
     .add-comment input {
       flex: 1;
       padding: 0.5rem 0.625rem;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       border-radius: 6px;
       font-size: 0.75rem;
       transition: all 0.2s ease;

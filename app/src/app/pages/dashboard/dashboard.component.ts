@@ -288,7 +288,7 @@ import { HeaderComponent } from '../../components/header/header.component';
   styles: [`
     .dashboard-container {
       min-height: 100vh;
-      background: #f3f4f6;
+      background: var(--bg-page);
     }
 
     .main-content {
@@ -358,7 +358,7 @@ import { HeaderComponent } from '../../components/header/header.component';
     }
 
     .stat-card {
-      background: white;
+      background: var(--bg-surface);
       border-radius: 16px;
       padding: 1.5rem;
 
@@ -385,11 +385,11 @@ import { HeaderComponent } from '../../components/header/header.component';
 
     /* Tarefas por Status */
     .priority-tasks-section {
-      background: white;
+      background: var(--bg-surface);
       border-radius: 16px;
       padding: 1.5rem;
       margin-bottom: 2rem;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--shadow-sm);
     }
 
     .priority-tasks-section .section-header {
@@ -405,17 +405,17 @@ import { HeaderComponent } from '../../components/header/header.component';
       gap: 0.5rem;
       font-size: 1.1rem;
       font-weight: 600;
-      color: #1f2937;
+      color: var(--text-primary);
       margin: 0;
     }
 
     .priority-tasks-section .section-header h2 svg {
-      color: #667eea;
+      color: var(--accent);
     }
 
     .pending-count {
-      background: #f3f4f6;
-      color: #6b7280;
+      background: var(--bg-surface-alt);
+      color: var(--text-tertiary);
       padding: 0.25rem 0.75rem;
       border-radius: 20px;
       font-size: 0.8rem;
@@ -429,7 +429,7 @@ import { HeaderComponent } from '../../components/header/header.component';
     }
 
     .status-group {
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       border-radius: 10px;
       overflow: hidden;
     }
@@ -440,7 +440,7 @@ import { HeaderComponent } from '../../components/header/header.component';
       gap: 0.5rem;
       width: 100%;
       padding: 0.5rem 0.75rem;
-      background: #f9fafb;
+      background: var(--bg-surface-hover);
       border: none;
       border-left: 4px solid;
       cursor: pointer;
@@ -449,14 +449,14 @@ import { HeaderComponent } from '../../components/header/header.component';
     }
 
     .status-group-header:hover {
-      background: #f3f4f6;
+      background: var(--bg-surface-alt);
     }
 
     .expand-icon {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #9ca3af;
+      color: var(--text-muted);
       transition: transform 0.2s ease;
     }
 
@@ -481,8 +481,8 @@ import { HeaderComponent } from '../../components/header/header.component';
       margin-left: auto;
       font-size: 0.7rem;
       font-weight: 600;
-      color: #6b7280;
-      background: white;
+      color: var(--text-tertiary);
+      background: var(--bg-surface);
       padding: 0.125rem 0.5rem;
       border-radius: 10px;
     }
@@ -499,15 +499,15 @@ import { HeaderComponent } from '../../components/header/header.component';
       align-items: center;
       gap: 0.75rem;
       padding: 0.5rem 0.75rem;
-      background: white;
+      background: var(--bg-surface);
       border-radius: 8px;
       transition: all 0.2s ease;
-      border: 1px solid #f3f4f6;
+      border: 1px solid var(--border-light);
     }
 
     .priority-task-item:hover {
-      background: #f9fafb;
-      border-color: #e5e7eb;
+      background: var(--bg-surface-hover);
+      border-color: var(--border);
     }
 
     .priority-task-item.in-progress {
@@ -573,27 +573,27 @@ import { HeaderComponent } from '../../components/header/header.component';
       justify-content: center;
       padding: 0.375rem;
       background: transparent;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       border-radius: 6px;
-      color: #6b7280;
+      color: var(--text-tertiary);
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
     .btn-icon-mini:hover {
-      background: #f3f4f6;
-      color: #374151;
+      background: var(--bg-surface-alt);
+      color: var(--text-secondary);
     }
 
     .btn-progress-mini:hover {
       border-color: #667eea;
-      color: #667eea;
-      background: #eef2ff;
+      color: var(--accent);
+      background: var(--accent-bg);
     }
 
     .btn-progress-mini.active {
-      color: #667eea;
-      background: #eef2ff;
+      color: var(--accent);
+      background: var(--accent-bg);
       border-color: rgba(102, 126, 234, 0.3);
     }
 
@@ -623,8 +623,8 @@ import { HeaderComponent } from '../../components/header/header.component';
       font-family: 'SF Mono', 'Consolas', monospace;
       font-size: 0.7rem;
       font-weight: 600;
-      color: #667eea;
-      background: #eef2ff;
+      color: var(--accent);
+      background: var(--accent-bg);
       padding: 0.125rem 0.375rem;
       border-radius: 4px;
     }
@@ -642,8 +642,8 @@ import { HeaderComponent } from '../../components/header/header.component';
       gap: 0.25rem;
       font-size: 0.65rem;
       font-weight: 600;
-      color: #667eea;
-      background: white;
+      color: var(--accent);
+      background: var(--bg-surface);
       padding: 0.125rem 0.5rem;
       border-radius: 10px;
     }
@@ -660,7 +660,7 @@ import { HeaderComponent } from '../../components/header/header.component';
       display: block;
       font-size: 0.9rem;
       font-weight: 500;
-      color: #1f2937;
+      color: var(--text-primary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -669,7 +669,7 @@ import { HeaderComponent } from '../../components/header/header.component';
     .task-demand-name {
       display: block;
       font-size: 0.75rem;
-      color: #6b7280;
+      color: var(--text-tertiary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -680,10 +680,10 @@ import { HeaderComponent } from '../../components/header/header.component';
       align-items: center;
       justify-content: center;
       padding: 0.5rem;
-      background: white;
-      border: 1px solid #e5e7eb;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
       border-radius: 8px;
-      color: #6b7280;
+      color: var(--text-tertiary);
       text-decoration: none;
       transition: all 0.2s ease;
       flex-shrink: 0;
@@ -717,14 +717,14 @@ import { HeaderComponent } from '../../components/header/header.component';
 
     .empty-priority-tasks span {
       font-size: 0.875rem;
-      color: #6b7280;
+      color: var(--text-tertiary);
     }
 
     .stat-card {
       display: flex;
       align-items: center;
       gap: 1rem;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--shadow-sm);
       transition: all 0.2s ease;
     }
 
@@ -743,8 +743,8 @@ import { HeaderComponent } from '../../components/header/header.component';
     }
 
     .stat-icon.blue {
-      background: #eef2ff;
-      color: #667eea;
+      background: var(--accent-bg);
+      color: var(--accent);
     }
 
     .stat-icon.orange {
@@ -770,12 +770,12 @@ import { HeaderComponent } from '../../components/header/header.component';
     .stat-value {
       font-size: 1.75rem;
       font-weight: 700;
-      color: #1f2937;
+      color: var(--text-primary);
     }
 
     .stat-label {
       font-size: 0.875rem;
-      color: #6b7280;
+      color: var(--text-tertiary);
     }
 
     /* Current Task Section */
@@ -803,7 +803,7 @@ import { HeaderComponent } from '../../components/header/header.component';
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      background: white;
+      background: var(--bg-surface);
       padding: 0.5rem 1rem;
       border-radius: 20px;
       flex-shrink: 0;
@@ -825,7 +825,7 @@ import { HeaderComponent } from '../../components/header/header.component';
     .current-task-indicator .label {
       font-size: 0.8rem;
       font-weight: 600;
-      color: #667eea;
+      color: var(--accent);
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
@@ -838,8 +838,8 @@ import { HeaderComponent } from '../../components/header/header.component';
       font-family: 'SF Mono', 'Consolas', monospace;
       font-size: 0.75rem;
       font-weight: 600;
-      color: #667eea;
-      background: white;
+      color: var(--accent);
+      background: var(--bg-surface);
       padding: 0.125rem 0.5rem;
       border-radius: 4px;
     }
@@ -847,13 +847,13 @@ import { HeaderComponent } from '../../components/header/header.component';
     .current-task-info .task-title {
       font-size: 1.1rem;
       font-weight: 600;
-      color: #1f2937;
+      color: var(--text-primary);
       margin: 0.375rem 0 0.25rem;
     }
 
     .current-task-info .task-demand-title {
       font-size: 0.875rem;
-      color: #6b7280;
+      color: var(--text-tertiary);
       margin: 0;
     }
 
@@ -886,12 +886,12 @@ import { HeaderComponent } from '../../components/header/header.component';
 
     .btn-go-task {
       padding: 0.625rem 1.25rem;
-      background: white;
-      border: 1px solid #e5e7eb;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
       border-radius: 10px;
       font-size: 0.875rem;
       font-weight: 500;
-      color: #667eea;
+      color: var(--accent);
       text-decoration: none;
       transition: all 0.2s ease;
       flex-shrink: 0;
@@ -912,10 +912,10 @@ import { HeaderComponent } from '../../components/header/header.component';
     }
 
     .status-overview-section, .recent-section {
-      background: white;
+      background: var(--bg-surface);
       border-radius: 16px;
       padding: 1.5rem;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--shadow-sm);
     }
 
     .section-header {
@@ -931,18 +931,18 @@ import { HeaderComponent } from '../../components/header/header.component';
       gap: 0.5rem;
       font-size: 1.1rem;
       font-weight: 600;
-      color: #1f2937;
+      color: var(--text-primary);
       margin: 0;
     }
 
     .section-header h2 svg {
-      color: #667eea;
+      color: var(--accent);
     }
 
     .btn-link {
       font-size: 0.875rem;
       font-weight: 500;
-      color: #667eea;
+      color: var(--accent);
       text-decoration: none;
       transition: color 0.2s ease;
     }
@@ -977,13 +977,13 @@ import { HeaderComponent } from '../../components/header/header.component';
 
     .status-name {
       font-size: 0.875rem;
-      color: #374151;
+      color: var(--text-secondary);
     }
 
     .status-bar-container {
       flex: 1;
       height: 8px;
-      background: #e5e7eb;
+      background: var(--border);
       border-radius: 4px;
       overflow: hidden;
     }
@@ -1010,7 +1010,7 @@ import { HeaderComponent } from '../../components/header/header.component';
 
     .demand-item {
       display: block;
-      background: #f9fafb;
+      background: var(--bg-surface-hover);
       border-radius: 12px;
       padding: 1rem;
       text-decoration: none;
@@ -1019,7 +1019,7 @@ import { HeaderComponent } from '../../components/header/header.component';
     }
 
     .demand-item:hover {
-      background: white;
+      background: var(--bg-surface);
       border-color: #667eea;
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
@@ -1036,8 +1036,8 @@ import { HeaderComponent } from '../../components/header/header.component';
       font-family: 'SF Mono', 'Consolas', monospace;
       font-size: 0.75rem;
       font-weight: 600;
-      color: #667eea;
-      background: #eef2ff;
+      color: var(--accent);
+      background: var(--accent-bg);
       padding: 0.125rem 0.5rem;
       border-radius: 4px;
     }
@@ -1052,7 +1052,7 @@ import { HeaderComponent } from '../../components/header/header.component';
     .demand-title {
       font-size: 0.95rem;
       font-weight: 500;
-      color: #1f2937;
+      color: var(--text-primary);
       margin: 0 0 0.75rem;
       line-height: 1.4;
     }
@@ -1066,7 +1066,7 @@ import { HeaderComponent } from '../../components/header/header.component';
     .progress-bar {
       flex: 1;
       height: 6px;
-      background: #e5e7eb;
+      background: var(--border);
       border-radius: 3px;
       overflow: hidden;
     }
@@ -1080,7 +1080,7 @@ import { HeaderComponent } from '../../components/header/header.component';
 
     .progress-text {
       font-size: 0.75rem;
-      color: #6b7280;
+      color: var(--text-tertiary);
       white-space: nowrap;
     }
 
@@ -1091,7 +1091,7 @@ import { HeaderComponent } from '../../components/header/header.component';
       align-items: center;
       justify-content: center;
       padding: 3rem;
-      color: #9ca3af;
+      color: var(--text-muted);
       text-align: center;
     }
 

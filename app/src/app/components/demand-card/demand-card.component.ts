@@ -224,7 +224,7 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
   `,
   styles: [`
     .demand-card {
-      background: white;
+      background: var(--bg-surface);
       border-radius: 16px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
       overflow: hidden;
@@ -247,7 +247,7 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
 
     .card-header {
       padding: 1.25rem 1.25rem 1rem;
-      border-bottom: 1px solid #f3f4f6;
+      border-bottom: 1px solid var(--border-light);
     }
 
     .header-top {
@@ -292,7 +292,7 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
     .demand-title {
       font-size: 1.1rem;
       font-weight: 600;
-      color: #1f2937;
+      color: var(--text-primary);
       margin: 0 0 1rem 0;
       line-height: 1.4;
     }
@@ -305,7 +305,7 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
       display: block;
       font-size: 0.75rem;
       font-weight: 500;
-      color: #6b7280;
+      color: var(--text-tertiary);
       margin-bottom: 0.5rem;
     }
 
@@ -320,12 +320,12 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
       align-items: center;
       gap: 0.25rem;
       padding: 0.25rem 0.5rem;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       border-radius: 20px;
-      background: white;
+      background: var(--bg-surface);
       font-size: 0.7rem;
       font-weight: 500;
-      color: #6b7280;
+      color: var(--text-tertiary);
       cursor: pointer;
       transition: all 0.2s ease;
     }
@@ -415,7 +415,7 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
     .tasks-title {
       font-size: 0.875rem;
       font-weight: 500;
-      color: #6b7280;
+      color: var(--text-tertiary);
     }
 
     .tasks-actions {
@@ -429,16 +429,16 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
       justify-content: center;
       padding: 0.375rem;
       background: transparent;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       border-radius: 6px;
-      color: #6b7280;
+      color: var(--text-tertiary);
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
     .btn-icon:hover {
-      background: #f3f4f6;
-      color: #374151;
+      background: var(--bg-surface-alt);
+      color: var(--text-secondary);
     }
 
     .btn-add-field:hover {
@@ -452,7 +452,7 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
 
     .progress-bar {
       height: 6px;
-      background: #e5e7eb;
+      background: var(--border);
       border-radius: 3px;
       overflow: hidden;
     }
@@ -480,7 +480,7 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
     }
 
     .tasks-list::-webkit-scrollbar-track {
-      background: #f3f4f6;
+      background: var(--bg-surface-alt);
       border-radius: 2px;
     }
 
@@ -494,13 +494,13 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
       align-items: center;
       gap: 0.75rem;
       padding: 0.5rem;
-      background: #f9fafb;
+      background: var(--bg-surface-hover);
       border-radius: 8px;
       transition: all 0.2s ease;
     }
 
     .task-item:hover {
-      background: #f3f4f6;
+      background: var(--bg-surface-alt);
     }
 
     .task-item.completed {
@@ -509,7 +509,7 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
 
     .task-item.completed .task-title {
       text-decoration: line-through;
-      color: #9ca3af;
+      color: var(--text-muted);
     }
 
     .task-item.in-progress {
@@ -557,7 +557,7 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
     .checkmark {
       width: 18px;
       height: 18px;
-      border: 2px solid #d1d5db;
+      border: 2px solid var(--border-medium);
       border-radius: 5px;
       transition: all 0.2s ease;
     }
@@ -582,7 +582,7 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
     .task-title {
       flex: 1;
       font-size: 0.9rem;
-      color: #374151;
+      color: var(--text-secondary);
       cursor: default;
     }
 
@@ -618,7 +618,7 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
 
     .btn-delete-task {
       opacity: 0;
-      color: #9ca3af;
+      color: var(--text-muted);
       border: none;
       padding: 0.25rem;
     }
@@ -634,7 +634,7 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
 
     .btn-progress {
       opacity: 0;
-      color: #6b7280;
+      color: var(--text-tertiary);
       border: none;
       padding: 0.25rem;
       transition: all 0.2s ease;
@@ -664,7 +664,7 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
     .add-task input {
       flex: 1;
       padding: 0.625rem 0.875rem;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       border-radius: 8px;
       font-size: 0.9rem;
       transition: all 0.2s ease;
@@ -702,8 +702,8 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
       display: flex;
       gap: 0.5rem;
       padding: 1rem 1.25rem;
-      background: #f9fafb;
-      border-top: 1px solid #f3f4f6;
+      background: var(--bg-surface-hover);
+      border-top: 1px solid var(--border-light);
     }
 
     .btn-action {
@@ -721,18 +721,18 @@ import { CustomFieldModalComponent } from '../custom-field-modal/custom-field-mo
     }
 
     .btn-edit {
-      background: white;
-      border: 1px solid #e5e7eb;
-      color: #374151;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
     }
 
     .btn-edit:hover {
-      background: #f3f4f6;
-      border-color: #d1d5db;
+      background: var(--bg-surface-alt);
+      border-color: var(--border-medium);
     }
 
     .btn-delete {
-      background: white;
+      background: var(--bg-surface);
       border: 1px solid #fecaca;
       color: #dc2626;
     }

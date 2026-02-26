@@ -1,10 +1,9 @@
 import { Component, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
-import { AuthService } from '../../core';
+import { AuthService, ThemeService } from '../../core';
 
 @Component({
   selector: 'app-header',
-  standalone: true,
   imports: [RouterLink, RouterLinkActive],
   template: `
     <header class="header">
@@ -60,6 +59,26 @@ import { AuthService } from '../../core';
         </div>
 
         <div class="user-section">
+          <button class="btn-theme" (click)="toggleTheme()" [title]="isDark() ? 'Modo claro' : 'Modo escuro'" aria-label="Alternar tema">
+            @if (isDark()) {
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+            }
+          </button>
+
           @if (user(); as currentUser) {
             <div class="user-info">
               @if (currentUser.photoURL) {
@@ -85,15 +104,16 @@ import { AuthService } from '../../core';
   `,
   styles: [`
     .header {
-      background: white;
-      border-bottom: 1px solid #e5e7eb;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
       position: sticky;
       top: 0;
       z-index: 100;
+      transition: background 0.2s ease, border-color 0.2s ease;
     }
 
     .header-content {
-      max-width: 1400px;
+      max-width: 1800px;
       margin: 0 auto;
       padding: 0.875rem 2rem;
       display: flex;
@@ -120,7 +140,7 @@ import { AuthService } from '../../core';
       justify-content: center;
       width: 42px;
       height: 42px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: var(--accent-gradient);
       border-radius: 10px;
       color: white;
     }
@@ -128,7 +148,7 @@ import { AuthService } from '../../core';
     .logo-text {
       font-size: 1.25rem;
       font-weight: 600;
-      color: #1f2937;
+      color: var(--text-primary);
     }
 
     .nav-links {
@@ -145,19 +165,19 @@ import { AuthService } from '../../core';
       border-radius: 8px;
       font-size: 0.9rem;
       font-weight: 500;
-      color: #6b7280;
+      color: var(--text-tertiary);
       text-decoration: none;
       transition: all 0.2s ease;
     }
 
     .nav-link:hover {
-      background: #f3f4f6;
-      color: #374151;
+      background: var(--bg-surface-hover);
+      color: var(--text-secondary);
     }
 
     .nav-link.active {
-      background: #eef2ff;
-      color: #667eea;
+      background: var(--accent-bg);
+      color: var(--accent);
     }
 
     .nav-link svg {
@@ -167,7 +187,26 @@ import { AuthService } from '../../core';
     .user-section {
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: 0.75rem;
+    }
+
+    .btn-theme {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem;
+      background: var(--bg-surface-hover);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-theme:hover {
+      background: var(--accent-bg);
+      border-color: var(--accent);
+      color: var(--accent);
     }
 
     .user-info {
@@ -187,7 +226,7 @@ import { AuthService } from '../../core';
       width: 36px;
       height: 36px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: var(--accent-gradient);
       color: white;
       display: flex;
       align-items: center;
@@ -199,7 +238,7 @@ import { AuthService } from '../../core';
     .user-name {
       font-size: 0.95rem;
       font-weight: 500;
-      color: #374151;
+      color: var(--text-secondary);
     }
 
     .btn-logout {
@@ -208,9 +247,9 @@ import { AuthService } from '../../core';
       justify-content: center;
       padding: 0.5rem;
       background: transparent;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       border-radius: 8px;
-      color: #6b7280;
+      color: var(--text-tertiary);
       cursor: pointer;
       transition: all 0.2s ease;
     }
@@ -252,9 +291,15 @@ import { AuthService } from '../../core';
 })
 export class HeaderComponent {
   private authService = inject(AuthService);
+  private themeService = inject(ThemeService);
   private router = inject(Router);
 
   user = this.authService.user;
+  isDark = this.themeService.isDark;
+
+  toggleTheme(): void {
+    this.themeService.toggle();
+  }
 
   getInitials(name: string): string {
     return name

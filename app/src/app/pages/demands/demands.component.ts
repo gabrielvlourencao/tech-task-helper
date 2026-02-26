@@ -5,15 +5,14 @@ import { Router } from '@angular/router';
 import { AuthService, DemandService, Demand, Task, ViewMode, PRIORITY_ORDER, PRIORITY_CONFIG, STATUS_CONFIG, DemandStatus, ReleaseDocumentService } from '../../core';
 import { RELEASE_DOC_TASK_TITLE } from '../../core/models/release-document.model';
 import { HeaderComponent } from '../../components/header/header.component';
-import { DemandCardComponent } from '../../components/demand-card/demand-card.component';
 import { DemandModalComponent } from '../../components/demand-modal/demand-modal.component';
 
-type DisplayMode = 'grid' | 'list';
+type DisplayMode = 'list' | 'kanban';
 
 @Component({
   selector: 'app-demands',
   standalone: true,
-  imports: [CommonModule, FormsModule, HeaderComponent, DemandCardComponent, DemandModalComponent],
+  imports: [CommonModule, FormsModule, HeaderComponent, DemandModalComponent],
   template: `
     <div class="demands-container">
       <app-header />
@@ -142,18 +141,6 @@ type DisplayMode = 'grid' | 'list';
             <div class="display-toggle">
               <button 
                 class="toggle-btn" 
-                [class.active]="displayMode() === 'grid'"
-                (click)="displayMode.set('grid')"
-                title="Visualização em cards">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect width="7" height="7" x="3" y="3" rx="1"></rect>
-                  <rect width="7" height="7" x="14" y="3" rx="1"></rect>
-                  <rect width="7" height="7" x="14" y="14" rx="1"></rect>
-                  <rect width="7" height="7" x="3" y="14" rx="1"></rect>
-                </svg>
-              </button>
-              <button 
-                class="toggle-btn" 
                 [class.active]="displayMode() === 'list'"
                 (click)="displayMode.set('list')"
                 title="Visualização em lista">
@@ -164,6 +151,18 @@ type DisplayMode = 'grid' | 'list';
                   <line x1="3" x2="3.01" y1="6" y2="6"></line>
                   <line x1="3" x2="3.01" y1="12" y2="12"></line>
                   <line x1="3" x2="3.01" y1="18" y2="18"></line>
+                </svg>
+              </button>
+              <button 
+                class="toggle-btn" 
+                [class.active]="displayMode() === 'kanban'"
+                (click)="displayMode.set('kanban')"
+                title="Visualização Kanban">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="7" height="9" x="3" y="3" rx="1"></rect>
+                  <rect width="7" height="5" x="14" y="3" rx="1"></rect>
+                  <rect width="7" height="9" x="14" y="12" rx="1"></rect>
+                  <rect width="7" height="5" x="3" y="16" rx="1"></rect>
                 </svg>
               </button>
             </div>
@@ -221,17 +220,7 @@ type DisplayMode = 'grid' | 'list';
             }
           </div>
         } @else {
-          @if (displayMode() === 'grid') {
-            <div class="demands-grid">
-              @for (demand of filteredDemands(); track demand.id) {
-                <app-demand-card 
-                  [demand]="demand"
-                  (onEdit)="openEditDemandModal($event)"
-                  (onDelete)="deleteDemand($event)"
-                />
-              }
-            </div>
-          } @else {
+          @if (displayMode() === 'list') {
             <!-- List View -->
             <div class="demands-list">
               <div class="list-header">
@@ -400,6 +389,140 @@ type DisplayMode = 'grid' | 'list';
                 </div>
               }
             </div>
+          } @else {
+            <!-- Kanban View -->
+            <div class="kanban-board">
+              @for (status of kanbanColumns(); track status) {
+                <div
+                  class="kanban-column"
+                  [class.drag-over]="dragOverStatus() === status"
+                  (dragover)="onKanbanDragOver($event, status)"
+                  (dragleave)="onKanbanDragLeave($event)"
+                  (drop)="onKanbanDrop($event, status)">
+
+                  <div class="column-header" [style.border-top-color]="getStatusConfig(status).color">
+                    <div class="column-header-info">
+                      <span>{{ getStatusConfig(status).icon }}</span>
+                      <span class="column-title">{{ getStatusConfig(status).label }}</span>
+                    </div>
+                    <span class="column-count">{{ getKanbanDemandsForStatus(status).length }}</span>
+                  </div>
+
+                  <div class="column-body">
+                    @for (demand of getKanbanDemandsForStatus(status); track demand.id) {
+                      <div
+                        class="kanban-card"
+                        [class.kanban-expanded]="expandedDemandId() === demand.id"
+                        [class.dragging]="draggingDemandId() === demand.id"
+                        draggable="true"
+                        (dragstart)="onKanbanDragStart($event, demand)"
+                        (dragend)="onKanbanDragEnd()">
+
+                        <div class="kanban-card-header" (click)="toggleExpand(demand.id)">
+                          <div class="kanban-card-top">
+                            <span class="kanban-code">{{ demand.code }}</span>
+                            <span class="kanban-priority"
+                              [style.background]="getPriorityConfig(demand.priority).bgColor"
+                              [style.color]="getPriorityConfig(demand.priority).color">
+                              {{ getPriorityConfig(demand.priority).label }}
+                            </span>
+                          </div>
+                          <h4 class="kanban-title">{{ demand.title }}</h4>
+                          <div class="kanban-badges">
+                            @if (getSistemaValue(demand)) {
+                              <span class="kanban-sistema">{{ getSistemaValue(demand) }}</span>
+                            }
+                            @if (getConsultoriaValue(demand)) {
+                              <span class="kanban-consultoria">{{ getConsultoriaValue(demand) }}</span>
+                            }
+                          </div>
+                          <div class="kanban-progress">
+                            <div class="kanban-progress-bar">
+                              <div class="kanban-progress-fill" [style.width.%]="getTaskProgress(demand)"></div>
+                            </div>
+                            <span class="kanban-progress-text">{{ getCompletedTasksCount(demand) }}/{{ demand.tasks.length }}</span>
+                          </div>
+                        </div>
+
+                        @if (expandedDemandId() === demand.id) {
+                          <div class="kanban-expanded" (click)="$event.stopPropagation()">
+                            <div class="kanban-tasks-scroll">
+                              @for (task of demand.tasks; track task.id) {
+                                <div class="kanban-task-item" [class.completed]="task.completed" [class.in-progress]="task.inProgress && !task.completed">
+                                  <label class="checkbox-container">
+                                    <input type="checkbox" [checked]="task.completed" (change)="toggleTask(demand.id, task)">
+                                    <span class="checkmark"></span>
+                                  </label>
+                                  @if (editingTaskId() === task.id) {
+                                    <input type="text" class="task-edit-input" [value]="task.title"
+                                      (blur)="saveTaskEdit($event, demand.id, task)"
+                                      (keydown.enter)="saveTaskEdit($event, demand.id, task)"
+                                      (keydown.escape)="editingTaskId.set(null)">
+                                  } @else {
+                                    <span class="kanban-task-title" (dblclick)="editingTaskId.set(task.id)">
+                                      @if (task.inProgress && !task.completed) {
+                                        <span class="in-progress-indicator">▶</span>
+                                      }
+                                      {{ task.title }}
+                                    </span>
+                                  }
+                                  @if (!task.completed) {
+                                    <button class="btn-icon-mini btn-progress"
+                                      [class.active]="task.inProgress"
+                                      (click)="setInProgress(demand.id, task)"
+                                      [title]="task.inProgress ? 'Parar execução' : 'Executar agora'">
+                                      @if (task.inProgress) {
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                                      } @else {
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                                      }
+                                    </button>
+                                  }
+                                  <button class="btn-icon-mini btn-delete-task" (click)="deleteTask(demand.id, task)" title="Excluir">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                  </button>
+                                </div>
+                              }
+                            </div>
+                            <div class="kanban-expanded-footer">
+                              <div class="kanban-add-task">
+                                <input type="text" placeholder="Nova tarefa..."
+                                  [value]="newTaskTitle()"
+                                  (input)="newTaskTitle.set($any($event.target).value)"
+                                  (keydown.enter)="addTask(demand.id)">
+                                <button class="btn-add-task-mini" (click)="addTask(demand.id)" [disabled]="!newTaskTitle().trim()">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                </button>
+                              </div>
+                              <select class="kanban-status-select"
+                                [ngModel]="demand.status"
+                                (ngModelChange)="changeStatus(demand.id, $event)"
+                                (click)="$event.stopPropagation()">
+                                @for (statusOption of statusOptions(); track statusOption.value) {
+                                  <option [value]="statusOption.value">{{ statusOption.config.icon }} {{ statusOption.config.label }}</option>
+                                }
+                              </select>
+                              <div class="kanban-card-actions">
+                                <button class="btn-kanban-edit" (click)="openEditDemandModal(demand)">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                  Editar
+                                </button>
+                                <button class="btn-kanban-delete" (click)="deleteDemand(demand.id)">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    }
+                    @if (getKanbanDemandsForStatus(status).length === 0) {
+                      <div class="kanban-empty">Nenhuma demanda</div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
           }
         }
       </main>
@@ -416,11 +539,11 @@ type DisplayMode = 'grid' | 'list';
   styles: [`
     .demands-container {
       min-height: 100vh;
-      background: #f3f4f6;
+      background: var(--bg-page);
     }
 
     .main-content {
-      max-width: 1400px;
+      max-width: 1800px;
       margin: 0 auto;
       padding: 2rem;
     }
@@ -443,13 +566,13 @@ type DisplayMode = 'grid' | 'list';
     .header-left h2 {
       font-size: 1.5rem;
       font-weight: 600;
-      color: #1f2937;
+      color: var(--text-primary);
       margin: 0;
     }
 
     .demand-count {
-      background: #e5e7eb;
-      color: #6b7280;
+      background: var(--border);
+      color: var(--text-tertiary);
       padding: 0.25rem 0.75rem;
       border-radius: 20px;
       font-size: 0.875rem;
@@ -464,10 +587,10 @@ type DisplayMode = 'grid' | 'list';
 
     .view-tabs {
       display: flex;
-      background: white;
+      background: var(--bg-surface);
       border-radius: 10px;
       padding: 0.25rem;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--shadow-sm);
     }
 
     .tab-btn {
@@ -480,14 +603,14 @@ type DisplayMode = 'grid' | 'list';
       border-radius: 8px;
       font-size: 0.875rem;
       font-weight: 500;
-      color: #6b7280;
+      color: var(--text-tertiary);
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
     .tab-btn:hover {
-      color: #374151;
-      background: #f3f4f6;
+      color: var(--text-secondary);
+      background: var(--bg-surface-alt);
     }
 
     .tab-btn.active {
@@ -505,8 +628,8 @@ type DisplayMode = 'grid' | 'list';
     }
 
     .tab-count {
-      background: #e5e7eb;
-      color: #6b7280;
+      background: var(--border);
+      color: var(--text-tertiary);
       padding: 0.125rem 0.5rem;
       border-radius: 10px;
       font-size: 0.75rem;
@@ -539,7 +662,7 @@ type DisplayMode = 'grid' | 'list';
       align-items: center;
       justify-content: center;
       padding: 4rem 2rem;
-      color: #6b7280;
+      color: var(--text-tertiary);
     }
 
     .spinner-lg {
@@ -566,19 +689,19 @@ type DisplayMode = 'grid' | 'list';
     }
 
     .empty-icon {
-      color: #9ca3af;
+      color: var(--text-muted);
       margin-bottom: 1.5rem;
     }
 
     .empty-state h3 {
       font-size: 1.25rem;
       font-weight: 600;
-      color: #374151;
+      color: var(--text-secondary);
       margin: 0 0 0.5rem 0;
     }
 
     .empty-state p {
-      color: #6b7280;
+      color: var(--text-tertiary);
       margin: 0 0 1.5rem 0;
       max-width: 400px;
     }
@@ -598,11 +721,11 @@ type DisplayMode = 'grid' | 'list';
 
     /* Filters Section */
     .filters-section {
-      background: white;
+      background: var(--bg-surface);
       border-radius: 12px;
       padding: 1rem 1.25rem;
       margin-bottom: 1.5rem;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--shadow-sm);
     }
 
     .filters-row {
@@ -625,17 +748,17 @@ type DisplayMode = 'grid' | 'list';
       gap: 0.375rem;
       font-size: 0.8rem;
       font-weight: 500;
-      color: #6b7280;
+      color: var(--text-tertiary);
     }
 
     .filter-group input,
     .filter-group select {
       padding: 0.5rem 0.75rem;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       border-radius: 8px;
       font-size: 0.875rem;
       transition: all 0.2s ease;
-      background: white;
+      background: var(--bg-surface);
     }
 
     .filter-group input:focus,
@@ -647,7 +770,7 @@ type DisplayMode = 'grid' | 'list';
 
     .display-toggle {
       display: flex;
-      background: #f3f4f6;
+      background: var(--bg-surface-alt);
       border-radius: 8px;
       padding: 0.25rem;
       margin-left: auto;
@@ -661,19 +784,19 @@ type DisplayMode = 'grid' | 'list';
       border: none;
       background: transparent;
       border-radius: 6px;
-      color: #6b7280;
+      color: var(--text-tertiary);
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
     .toggle-btn:hover {
-      color: #374151;
+      color: var(--text-secondary);
     }
 
     .toggle-btn.active {
-      background: white;
+      background: var(--bg-surface);
       color: #667eea;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--shadow-sm);
     }
 
     .btn-clear-filters {
@@ -681,26 +804,26 @@ type DisplayMode = 'grid' | 'list';
       align-items: center;
       gap: 0.375rem;
       padding: 0.5rem 0.75rem;
-      border: 1px solid #e5e7eb;
-      background: white;
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
       border-radius: 8px;
       font-size: 0.8rem;
       font-weight: 500;
-      color: #6b7280;
+      color: var(--text-tertiary);
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
     .btn-clear-filters:hover {
-      background: #f3f4f6;
-      border-color: #d1d5db;
+      background: var(--bg-surface-alt);
+      border-color: var(--border-medium);
     }
 
     /* List View */
     .demands-list {
-      background: white;
+      background: var(--bg-surface);
       border-radius: 12px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--shadow-sm);
       overflow: hidden;
     }
 
@@ -709,17 +832,17 @@ type DisplayMode = 'grid' | 'list';
       grid-template-columns: 40px 110px 1fr 100px 100px 120px 80px 100px 70px;
       gap: 0.75rem;
       padding: 0.75rem 1rem;
-      background: #f9fafb;
-      border-bottom: 1px solid #e5e7eb;
+      background: var(--bg-surface-hover);
+      border-bottom: 1px solid var(--border);
       font-size: 0.7rem;
       font-weight: 600;
-      color: #6b7280;
+      color: var(--text-tertiary);
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
     .list-item {
-      border-bottom: 1px solid #f3f4f6;
+      border-bottom: 1px solid var(--border-light);
     }
 
     .list-item:last-child {
@@ -737,7 +860,7 @@ type DisplayMode = 'grid' | 'list';
     }
 
     .list-row:hover {
-      background: #f9fafb;
+      background: var(--bg-surface-hover);
     }
 
     .list-item.completed .list-row {
@@ -753,15 +876,15 @@ type DisplayMode = 'grid' | 'list';
       height: 24px;
       border: none;
       background: transparent;
-      color: #9ca3af;
+      color: var(--text-muted);
       cursor: pointer;
       border-radius: 4px;
       transition: all 0.2s ease;
     }
 
     .btn-expand:hover {
-      background: #f3f4f6;
-      color: #374151;
+      background: var(--bg-surface-alt);
+      color: var(--text-secondary);
     }
 
     .btn-expand.expanded {
@@ -786,7 +909,7 @@ type DisplayMode = 'grid' | 'list';
     .col-title {
       font-size: 0.85rem;
       font-weight: 500;
-      color: #1f2937;
+      color: var(--text-primary);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -818,10 +941,10 @@ type DisplayMode = 'grid' | 'list';
       padding: 0.25rem 0.5rem;
       font-size: 0.7rem;
       font-weight: 500;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       border-radius: 8px;
-      background: white;
-      color: #374151;
+      background: var(--bg-surface);
+      color: var(--text-secondary);
       cursor: pointer;
       transition: border-color 0.2s ease;
     }
@@ -852,7 +975,7 @@ type DisplayMode = 'grid' | 'list';
     .progress-bar-mini {
       flex: 1;
       height: 5px;
-      background: #e5e7eb;
+      background: var(--border);
       border-radius: 3px;
       overflow: hidden;
     }
@@ -866,7 +989,7 @@ type DisplayMode = 'grid' | 'list';
 
     .progress-text-mini {
       font-size: 0.7rem;
-      color: #6b7280;
+      color: var(--text-tertiary);
       white-space: nowrap;
     }
 
@@ -880,16 +1003,16 @@ type DisplayMode = 'grid' | 'list';
       align-items: center;
       justify-content: center;
       padding: 0.3rem;
-      border: 1px solid #e5e7eb;
-      background: white;
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
       border-radius: 5px;
-      color: #6b7280;
+      color: var(--text-tertiary);
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
     .btn-edit-mini:hover {
-      background: #f3f4f6;
+      background: var(--bg-surface-alt);
       color: #667eea;
       border-color: #667eea;
     }
@@ -903,8 +1026,8 @@ type DisplayMode = 'grid' | 'list';
     /* Expanded Tasks Section */
     .list-expanded {
       padding: 0.75rem 1rem 1rem;
-      background: #f9fafb;
-      border-top: 1px solid #e5e7eb;
+      background: var(--bg-surface-hover);
+      border-top: 1px solid var(--border);
     }
 
     .expanded-tasks {
@@ -919,7 +1042,7 @@ type DisplayMode = 'grid' | 'list';
     .tasks-title-expanded {
       font-size: 0.75rem;
       font-weight: 500;
-      color: #6b7280;
+      color: var(--text-tertiary);
     }
 
     .tasks-list-expanded {
@@ -935,14 +1058,14 @@ type DisplayMode = 'grid' | 'list';
       align-items: center;
       gap: 0.5rem;
       padding: 0.4rem 0.5rem;
-      background: white;
+      background: var(--bg-surface);
       border-radius: 6px;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       transition: all 0.2s ease;
     }
 
     .task-item-expanded:hover {
-      border-color: #d1d5db;
+      border-color: var(--border-medium);
     }
 
     .task-item-expanded.completed {
@@ -951,7 +1074,7 @@ type DisplayMode = 'grid' | 'list';
 
     .task-item-expanded.completed .task-title-expanded {
       text-decoration: line-through;
-      color: #9ca3af;
+      color: var(--text-muted);
     }
 
     .task-item-expanded.in-progress {
@@ -1018,7 +1141,7 @@ type DisplayMode = 'grid' | 'list';
     .task-title-expanded {
       flex: 1;
       font-size: 0.8rem;
-      color: #374151;
+      color: var(--text-secondary);
       cursor: default;
     }
 
@@ -1038,7 +1161,7 @@ type DisplayMode = 'grid' | 'list';
       padding: 0.2rem;
       background: transparent;
       border: none;
-      color: #9ca3af;
+      color: var(--text-muted);
       cursor: pointer;
       border-radius: 4px;
       transition: all 0.2s ease;
@@ -1074,7 +1197,7 @@ type DisplayMode = 'grid' | 'list';
     .add-task-expanded input {
       flex: 1;
       padding: 0.4rem 0.6rem;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       border-radius: 6px;
       font-size: 0.8rem;
       transition: all 0.2s ease;
@@ -1207,6 +1330,391 @@ type DisplayMode = 'grid' | 'list';
       .expanded-tasks {
         margin-left: 0;
       }
+
+      .kanban-board {
+        flex-direction: column;
+      }
+
+      .kanban-column {
+        flex: 1 1 auto !important;
+        max-height: none !important;
+      }
+    }
+
+    /* ===== Kanban View ===== */
+    .kanban-board {
+      display: flex;
+      gap: 1rem;
+      overflow-x: auto;
+      padding-bottom: 1rem;
+      min-height: calc(100vh - 280px);
+    }
+
+    .kanban-board::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .kanban-board::-webkit-scrollbar-track {
+      background: var(--bg-surface-alt);
+      border-radius: 3px;
+    }
+
+    .kanban-board::-webkit-scrollbar-thumb {
+      background: var(--border-medium);
+      border-radius: 3px;
+    }
+
+    .kanban-column {
+      flex: 0 0 290px;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-surface);
+      border-radius: 12px;
+      box-shadow: var(--shadow-sm);
+      max-height: calc(100vh - 280px);
+      transition: all 0.2s ease;
+      border: 2px solid transparent;
+    }
+
+    .kanban-column.drag-over {
+      border-color: var(--accent);
+      background: var(--accent-bg);
+    }
+
+    .column-header {
+      padding: 0.875rem 1rem;
+      border-top: 3px solid;
+      border-radius: 12px 12px 0 0;
+      background: var(--bg-surface-hover);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .column-header-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .column-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .column-count {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      background: var(--bg-surface);
+      padding: 0.125rem 0.5rem;
+      border-radius: 10px;
+    }
+
+    .column-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.625rem;
+    }
+
+    .column-body::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .column-body::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .column-body::-webkit-scrollbar-thumb {
+      background: var(--border-medium);
+      border-radius: 2px;
+    }
+
+    .kanban-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      transition: all 0.15s ease;
+      user-select: none;
+      overflow: hidden;
+    }
+
+    .kanban-card:hover {
+      border-color: var(--accent);
+      box-shadow: var(--shadow-md);
+    }
+
+    .kanban-card.dragging {
+      opacity: 0.4;
+      transform: rotate(2deg) scale(0.98);
+    }
+
+    .kanban-card.kanban-expanded {
+      border-color: var(--accent);
+    }
+
+    .kanban-card-header {
+      padding: 0.875rem;
+      cursor: grab;
+    }
+
+    .kanban-card-header:active {
+      cursor: grabbing;
+    }
+
+    .kanban-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .kanban-code {
+      font-family: 'SF Mono', 'Consolas', monospace;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--accent);
+      background: var(--accent-bg);
+      padding: 0.125rem 0.375rem;
+      border-radius: 4px;
+    }
+
+    .kanban-priority {
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 0.125rem 0.5rem;
+      border-radius: 10px;
+    }
+
+    .kanban-title {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin: 0 0 0.5rem;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .kanban-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .kanban-sistema {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: #7c3aed;
+      background: #f3e8ff;
+      padding: 0.125rem 0.375rem;
+      border-radius: 4px;
+    }
+
+    :host-context([data-theme="dark"]) .kanban-sistema {
+      color: #c4b5fd;
+      background: rgba(124, 58, 237, 0.2);
+    }
+
+    .kanban-consultoria {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: #0369a1;
+      background: #e0f2fe;
+      padding: 0.125rem 0.375rem;
+      border-radius: 4px;
+    }
+
+    :host-context([data-theme="dark"]) .kanban-consultoria {
+      color: #7dd3fc;
+      background: rgba(14, 165, 233, 0.15);
+    }
+
+    .kanban-progress {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .kanban-progress-bar {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .kanban-progress-fill {
+      height: 100%;
+      background: var(--accent-gradient);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    .kanban-progress-text {
+      font-size: 0.7rem;
+      color: var(--text-tertiary);
+      white-space: nowrap;
+    }
+
+    .kanban-expanded {
+      border-top: 1px solid var(--border);
+      animation: fadeIn 0.2s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .kanban-tasks-scroll {
+      max-height: 220px;
+      overflow-y: auto;
+      padding: 0.5rem 0.875rem 0;
+    }
+
+    .kanban-tasks-scroll::-webkit-scrollbar {
+      width: 3px;
+    }
+
+    .kanban-tasks-scroll::-webkit-scrollbar-thumb {
+      background: var(--border-medium);
+      border-radius: 2px;
+    }
+
+    .kanban-expanded-footer {
+      padding: 0.5rem 0.875rem 0.875rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .kanban-task-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.375rem 0.25rem;
+      border-radius: 6px;
+      transition: background 0.15s ease;
+    }
+
+    .kanban-task-item:hover {
+      background: var(--bg-surface-hover);
+    }
+
+    .kanban-task-item.completed .kanban-task-title {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    .kanban-task-item.in-progress {
+      background: var(--accent-bg);
+    }
+
+    .kanban-task-title {
+      flex: 1;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      cursor: default;
+    }
+
+    .kanban-add-task {
+      display: flex;
+      gap: 0.375rem;
+      margin-top: 0.5rem;
+    }
+
+    .kanban-add-task input {
+      flex: 1;
+      padding: 0.375rem 0.625rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.8rem;
+      background: var(--bg-input);
+      color: var(--text-primary);
+      transition: border-color 0.2s;
+    }
+
+    .kanban-add-task input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .kanban-status-select {
+      width: 100%;
+      padding: 0.375rem 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.8rem;
+      background: var(--bg-input);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .kanban-status-select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .kanban-card-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn-kanban-edit, .btn-kanban-delete {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.375rem;
+      flex: 1;
+      padding: 0.375rem 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-kanban-edit {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+
+    .btn-kanban-edit:hover {
+      background: var(--bg-surface-hover);
+      border-color: var(--border-medium);
+    }
+
+    .btn-kanban-delete {
+      background: transparent;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+    }
+
+    .btn-kanban-delete:hover {
+      background: #fef2f2;
+    }
+
+    .kanban-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-style: italic;
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      min-height: 80px;
     }
   `]
 })
@@ -1221,12 +1729,65 @@ export class DemandsComponent {
   loading = this.demandService.loading;
 
   viewMode = signal<ViewMode>('active');
-  displayMode = signal<DisplayMode>('grid');
+  displayMode = signal<DisplayMode>('list');
   showModal = signal(false);
   editingDemand = signal<Demand | null>(null);
   expandedDemandId = signal<string | null>(null);
   editingTaskId = signal<string | null>(null);
   newTaskTitle = signal('');
+
+  // Kanban
+  draggingDemandId = signal<string | null>(null);
+  dragOverStatus = signal<DemandStatus | null>(null);
+
+  private readonly KANBAN_ORDER: DemandStatus[] = [
+    'estimativa', 'setup', 'desenvolvimento', 'homologacao', 'op_assistida', 'bloqueado', 'concluido'
+  ];
+
+  kanbanColumns = computed(() => {
+    const mode = this.viewMode();
+    return this.KANBAN_ORDER.filter(status => {
+      if (status === 'concluido' && mode === 'active') return false;
+      if (status !== 'concluido' && mode === 'completed') return false;
+      return true;
+    });
+  });
+
+  getKanbanDemandsForStatus(status: DemandStatus): Demand[] {
+    return this.filteredDemands().filter(d => d.status === status);
+  }
+
+  onKanbanDragStart(event: DragEvent, demand: Demand): void {
+    this.draggingDemandId.set(demand.id);
+    event.dataTransfer?.setData('text/plain', demand.id);
+    if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+  }
+
+  onKanbanDragEnd(): void {
+    this.draggingDemandId.set(null);
+    this.dragOverStatus.set(null);
+  }
+
+  onKanbanDragOver(event: DragEvent, status: DemandStatus): void {
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    this.dragOverStatus.set(status);
+  }
+
+  onKanbanDragLeave(event: DragEvent): void {
+    const related = event.relatedTarget as HTMLElement;
+    const current = event.currentTarget as HTMLElement;
+    if (!current.contains(related)) this.dragOverStatus.set(null);
+  }
+
+  async onKanbanDrop(event: DragEvent, targetStatus: DemandStatus): Promise<void> {
+    event.preventDefault();
+    const demandId = event.dataTransfer?.getData('text/plain');
+    if (!demandId) return;
+    this.dragOverStatus.set(null);
+    this.draggingDemandId.set(null);
+    await this.demandService.updateStatus(demandId, targetStatus);
+  }
 
   // Filtros
   filterById = signal('');
