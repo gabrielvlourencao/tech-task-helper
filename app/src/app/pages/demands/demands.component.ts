@@ -2,7 +2,7 @@ import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AuthService, DemandService, Demand, Task, ViewMode, PRIORITY_ORDER, PRIORITY_CONFIG, STATUS_CONFIG, DemandStatus, ReleaseDocumentService } from '../../core';
+import { AuthService, DemandService, Demand, Task, PRIORITY_ORDER, PRIORITY_CONFIG, STATUS_CONFIG, DemandStatus, ReleaseDocumentService } from '../../core';
 import { RELEASE_DOC_TASK_TITLE } from '../../core/models/release-document.model';
 import { HeaderComponent } from '../../components/header/header.component';
 import { DemandModalComponent } from '../../components/demand-modal/demand-modal.component';
@@ -24,32 +24,14 @@ type DisplayMode = 'list' | 'kanban';
             <span class="demand-count">{{ filteredDemands().length }} demanda(s)</span>
           </div>
           <div class="header-right">
-            <div class="view-tabs">
-              <button 
-                class="tab-btn" 
-                [class.active]="viewMode() === 'active'"
-                (click)="viewMode.set('active')">
-                <span class="tab-icon">📋</span>
-                Ativas
-                <span class="tab-count">{{ activeDemands().length }}</span>
-              </button>
-              <button 
-                class="tab-btn" 
-                [class.active]="viewMode() === 'completed'"
-                (click)="viewMode.set('completed')">
-                <span class="tab-icon">✅</span>
-                Concluídas
-                <span class="tab-count">{{ completedDemands().length }}</span>
-              </button>
-              <button 
-                class="tab-btn" 
-                [class.active]="viewMode() === 'all'"
-                (click)="viewMode.set('all')">
-                <span class="tab-icon">📁</span>
-                Todas
-                <span class="tab-count">{{ demands().length }}</span>
-              </button>
-            </div>
+            <button 
+              class="toggle-completed-btn"
+              [class.active]="showCompleted()"
+              (click)="showCompleted.set(!showCompleted())">
+              <span class="toggle-completed-icon">✅</span>
+              Exibir concluídos
+              <span class="tab-count">{{ completedDemands().length }}</span>
+            </button>
             <button class="btn-primary" (click)="openNewDemandModal()">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -187,37 +169,19 @@ type DisplayMode = 'list' | 'kanban';
         } @else if (filteredDemands().length === 0) {
           <div class="empty-state">
             <div class="empty-icon">
-              @if (viewMode() === 'completed') {
-                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                </svg>
-              } @else {
-                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                  <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
-              }
+              <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
             </div>
-            @if (viewMode() === 'completed') {
-              <h3>Nenhuma demanda concluída</h3>
-              <p>Complete suas demandas para vê-las aqui</p>
-            } @else if (viewMode() === 'active') {
-              <h3>Nenhuma demanda ativa</h3>
-              <p>Crie uma nova demanda para começar</p>
-              <button class="btn-primary" (click)="openNewDemandModal()">
-                Criar primeira demanda
-              </button>
-            } @else {
-              <h3>Nenhuma demanda ainda</h3>
-              <p>Crie sua primeira demanda para começar a organizar suas tarefas</p>
-              <button class="btn-primary" (click)="openNewDemandModal()">
-                Criar primeira demanda
-              </button>
-            }
+            <h3>Nenhuma demanda encontrada</h3>
+            <p>Crie uma nova demanda para começar a organizar suas tarefas</p>
+            <button class="btn-primary" (click)="openNewDemandModal()">
+              Criar primeira demanda
+            </button>
           </div>
         } @else {
           @if (displayMode() === 'list') {
@@ -412,13 +376,12 @@ type DisplayMode = 'list' | 'kanban';
                     @for (demand of getKanbanDemandsForStatus(status); track demand.id) {
                       <div
                         class="kanban-card"
-                        [class.kanban-expanded]="expandedDemandId() === demand.id"
                         [class.dragging]="draggingDemandId() === demand.id"
                         draggable="true"
                         (dragstart)="onKanbanDragStart($event, demand)"
                         (dragend)="onKanbanDragEnd()">
 
-                        <div class="kanban-card-header" (click)="toggleExpand(demand.id)">
+                        <div class="kanban-card-header" (click)="openCardModal(demand)">
                           <div class="kanban-card-top">
                             <span class="kanban-code">{{ demand.code }}</span>
                             <span class="kanban-priority"
@@ -443,77 +406,6 @@ type DisplayMode = 'list' | 'kanban';
                             <span class="kanban-progress-text">{{ getCompletedTasksCount(demand) }}/{{ demand.tasks.length }}</span>
                           </div>
                         </div>
-
-                        @if (expandedDemandId() === demand.id) {
-                          <div class="kanban-expanded" (click)="$event.stopPropagation()">
-                            <div class="kanban-tasks-scroll">
-                              @for (task of demand.tasks; track task.id) {
-                                <div class="kanban-task-item" [class.completed]="task.completed" [class.in-progress]="task.inProgress && !task.completed">
-                                  <label class="checkbox-container">
-                                    <input type="checkbox" [checked]="task.completed" (change)="toggleTask(demand.id, task)">
-                                    <span class="checkmark"></span>
-                                  </label>
-                                  @if (editingTaskId() === task.id) {
-                                    <input type="text" class="task-edit-input" [value]="task.title"
-                                      (blur)="saveTaskEdit($event, demand.id, task)"
-                                      (keydown.enter)="saveTaskEdit($event, demand.id, task)"
-                                      (keydown.escape)="editingTaskId.set(null)">
-                                  } @else {
-                                    <span class="kanban-task-title" (dblclick)="editingTaskId.set(task.id)">
-                                      @if (task.inProgress && !task.completed) {
-                                        <span class="in-progress-indicator">▶</span>
-                                      }
-                                      {{ task.title }}
-                                    </span>
-                                  }
-                                  @if (!task.completed) {
-                                    <button class="btn-icon-mini btn-progress"
-                                      [class.active]="task.inProgress"
-                                      (click)="setInProgress(demand.id, task)"
-                                      [title]="task.inProgress ? 'Parar execução' : 'Executar agora'">
-                                      @if (task.inProgress) {
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
-                                      } @else {
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                                      }
-                                    </button>
-                                  }
-                                  <button class="btn-icon-mini btn-delete-task" (click)="deleteTask(demand.id, task)" title="Excluir">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                  </button>
-                                </div>
-                              }
-                            </div>
-                            <div class="kanban-expanded-footer">
-                              <div class="kanban-add-task">
-                                <input type="text" placeholder="Nova tarefa..."
-                                  [value]="newTaskTitle()"
-                                  (input)="newTaskTitle.set($any($event.target).value)"
-                                  (keydown.enter)="addTask(demand.id)">
-                                <button class="btn-add-task-mini" (click)="addTask(demand.id)" [disabled]="!newTaskTitle().trim()">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                </button>
-                              </div>
-                              <select class="kanban-status-select"
-                                [ngModel]="demand.status"
-                                (ngModelChange)="changeStatus(demand.id, $event)"
-                                (click)="$event.stopPropagation()">
-                                @for (statusOption of statusOptions(); track statusOption.value) {
-                                  <option [value]="statusOption.value">{{ statusOption.config.icon }} {{ statusOption.config.label }}</option>
-                                }
-                              </select>
-                              <div class="kanban-card-actions">
-                                <button class="btn-kanban-edit" (click)="openEditDemandModal(demand)">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                                  Editar
-                                </button>
-                                <button class="btn-kanban-delete" (click)="deleteDemand(demand.id)">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        }
                       </div>
                     }
                     @if (getKanbanDemandsForStatus(status).length === 0) {
@@ -533,6 +425,115 @@ type DisplayMode = 'list' | 'kanban';
           (onClose)="closeModal()"
           (onSave)="saveDemand($event)"
         />
+      }
+
+      @if (cardModalDemand(); as demand) {
+        <div class="card-modal-overlay" (click)="closeCardModal()">
+          <div class="card-modal" (click)="$event.stopPropagation()">
+            <div class="card-modal-header">
+              <div class="card-modal-top">
+                <span class="kanban-code">{{ demand.code }}</span>
+                <span class="kanban-priority"
+                  [style.background]="getPriorityConfig(demand.priority).bgColor"
+                  [style.color]="getPriorityConfig(demand.priority).color">
+                  {{ getPriorityConfig(demand.priority).label }}
+                </span>
+                <button class="card-modal-close" (click)="closeCardModal()" aria-label="Fechar">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+              </div>
+              <h3 class="card-modal-title">{{ demand.title }}</h3>
+              <div class="kanban-badges">
+                @if (getSistemaValue(demand)) {
+                  <span class="kanban-sistema">{{ getSistemaValue(demand) }}</span>
+                }
+                @if (getConsultoriaValue(demand)) {
+                  <span class="kanban-consultoria">{{ getConsultoriaValue(demand) }}</span>
+                }
+              </div>
+            </div>
+            <div class="card-modal-body">
+              <div class="card-modal-section">
+                <label class="card-modal-label">Status</label>
+                <select class="kanban-status-select"
+                  [ngModel]="demand.status"
+                  (ngModelChange)="changeStatus(demand.id, $event)">
+                  @for (statusOption of statusOptions(); track statusOption.value) {
+                    <option [value]="statusOption.value">{{ statusOption.config.icon }} {{ statusOption.config.label }}</option>
+                  }
+                </select>
+              </div>
+              <div class="card-modal-section">
+                <div class="card-modal-tasks-header">
+                  <label class="card-modal-label">Tarefas ({{ getCompletedTasksCount(demand) }}/{{ demand.tasks.length }})</label>
+                  <div class="kanban-progress" style="flex:1; max-width: 200px;">
+                    <div class="kanban-progress-bar">
+                      <div class="kanban-progress-fill" [style.width.%]="getTaskProgress(demand)"></div>
+                    </div>
+                    <span class="kanban-progress-text">{{ getTaskProgress(demand) | number:'1.0-0' }}%</span>
+                  </div>
+                </div>
+                <div class="card-modal-tasks-list">
+                  @for (task of demand.tasks; track task.id) {
+                    <div class="kanban-task-item" [class.completed]="task.completed" [class.in-progress]="task.inProgress && !task.completed">
+                      <label class="checkbox-container">
+                        <input type="checkbox" [checked]="task.completed" (change)="toggleTask(demand.id, task)">
+                        <span class="checkmark"></span>
+                      </label>
+                      @if (editingTaskId() === task.id) {
+                        <input type="text" class="task-edit-input" [value]="task.title"
+                          (blur)="saveTaskEdit($event, demand.id, task)"
+                          (keydown.enter)="saveTaskEdit($event, demand.id, task)"
+                          (keydown.escape)="editingTaskId.set(null)">
+                      } @else {
+                        <span class="kanban-task-title" (dblclick)="editingTaskId.set(task.id)">
+                          @if (task.inProgress && !task.completed) {
+                            <span class="in-progress-indicator">▶</span>
+                          }
+                          {{ task.title }}
+                        </span>
+                      }
+                      @if (!task.completed) {
+                        <button class="btn-icon-mini btn-progress"
+                          [class.active]="task.inProgress"
+                          (click)="setInProgress(demand.id, task)"
+                          [title]="task.inProgress ? 'Parar execução' : 'Executar agora'">
+                          @if (task.inProgress) {
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                          } @else {
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                          }
+                        </button>
+                      }
+                      <button class="btn-icon-mini btn-delete-task" (click)="deleteTask(demand.id, task)" title="Excluir">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                      </button>
+                    </div>
+                  }
+                </div>
+                <div class="kanban-add-task">
+                  <input type="text" placeholder="Nova tarefa..."
+                    [value]="newTaskTitle()"
+                    (input)="newTaskTitle.set($any($event.target).value)"
+                    (keydown.enter)="addTask(demand.id)">
+                  <button class="btn-add-task-mini" (click)="addTask(demand.id)" [disabled]="!newTaskTitle().trim()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="card-modal-footer">
+              <button class="btn-kanban-edit" (click)="openEditDemandModal(demand); closeCardModal()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                Editar demanda
+              </button>
+              <button class="btn-kanban-delete" (click)="deleteDemandFromModal(demand.id)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
       }
     </div>
   `,
@@ -585,45 +586,39 @@ type DisplayMode = 'list' | 'kanban';
       gap: 1rem;
     }
 
-    .view-tabs {
-      display: flex;
-      background: var(--bg-surface);
-      border-radius: 10px;
-      padding: 0.25rem;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .tab-btn {
+    .toggle-completed-btn {
       display: flex;
       align-items: center;
       gap: 0.5rem;
       padding: 0.5rem 1rem;
-      border: none;
-      background: transparent;
-      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      border-radius: 10px;
       font-size: 0.875rem;
       font-weight: 500;
       color: var(--text-tertiary);
       cursor: pointer;
       transition: all 0.2s ease;
+      box-shadow: var(--shadow-sm);
     }
 
-    .tab-btn:hover {
+    .toggle-completed-btn:hover {
       color: var(--text-secondary);
-      background: var(--bg-surface-alt);
+      border-color: var(--border-medium);
     }
 
-    .tab-btn.active {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .toggle-completed-btn.active {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
       color: white;
+      border-color: transparent;
     }
 
-    .tab-btn.active .tab-count {
+    .toggle-completed-btn.active .tab-count {
       background: rgba(255, 255, 255, 0.2);
       color: white;
     }
 
-    .tab-icon {
+    .toggle-completed-icon {
       font-size: 1rem;
     }
 
@@ -1347,7 +1342,7 @@ type DisplayMode = 'list' | 'kanban';
       gap: 1rem;
       overflow-x: auto;
       padding-bottom: 1rem;
-      min-height: calc(100vh - 280px);
+      height: calc(100vh - 280px);
     }
 
     .kanban-board::-webkit-scrollbar {
@@ -1371,7 +1366,8 @@ type DisplayMode = 'list' | 'kanban';
       background: var(--bg-surface);
       border-radius: 12px;
       box-shadow: var(--shadow-sm);
-      max-height: calc(100vh - 280px);
+      height: 100%;
+      overflow: hidden;
       transition: all 0.2s ease;
       border: 2px solid transparent;
     }
@@ -1716,6 +1712,135 @@ type DisplayMode = 'list' | 'kanban';
       border-radius: 8px;
       min-height: 80px;
     }
+
+    /* Card Detail Modal */
+    .card-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      animation: fadeIn 0.15s ease;
+    }
+
+    .card-modal {
+      background: var(--bg-surface);
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      width: 100%;
+      max-width: 520px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      animation: modalSlideUp 0.2s ease;
+    }
+
+    .card-modal-header {
+      padding: 1.25rem 1.25rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-modal-top {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .card-modal-close {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.15s ease;
+    }
+
+    .card-modal-close:hover {
+      background: var(--bg-surface-alt);
+      color: var(--text-secondary);
+    }
+
+    .card-modal-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0 0 0.5rem;
+      line-height: 1.4;
+    }
+
+    .card-modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem 1.25rem;
+    }
+
+    .card-modal-section {
+      margin-bottom: 1rem;
+    }
+
+    .card-modal-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .card-modal-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.5rem;
+    }
+
+    .card-modal-tasks-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .card-modal-tasks-header .card-modal-label {
+      margin-bottom: 0;
+    }
+
+    .card-modal-tasks-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-bottom: 0.75rem;
+    }
+
+    .card-modal-tasks-list .kanban-task-item .btn-icon-mini {
+      opacity: 1;
+    }
+
+    .card-modal-footer {
+      padding: 0.875rem 1.25rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes modalSlideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   `]
 })
 export class DemandsComponent {
@@ -1728,7 +1853,7 @@ export class DemandsComponent {
   demands = this.demandService.demands;
   loading = this.demandService.loading;
 
-  viewMode = signal<ViewMode>('active');
+  showCompleted = signal(false);
   displayMode = signal<DisplayMode>('list');
   showModal = signal(false);
   editingDemand = signal<Demand | null>(null);
@@ -1740,17 +1865,22 @@ export class DemandsComponent {
   draggingDemandId = signal<string | null>(null);
   dragOverStatus = signal<DemandStatus | null>(null);
 
+  // Card detail modal
+  cardModalDemandId = signal<string | null>(null);
+  cardModalDemand = computed(() => {
+    const id = this.cardModalDemandId();
+    return id ? this.demands().find(d => d.id === id) ?? null : null;
+  });
+
   private readonly KANBAN_ORDER: DemandStatus[] = [
     'estimativa', 'setup', 'desenvolvimento', 'homologacao', 'op_assistida', 'bloqueado', 'concluido'
   ];
 
   kanbanColumns = computed(() => {
-    const mode = this.viewMode();
-    return this.KANBAN_ORDER.filter(status => {
-      if (status === 'concluido' && mode === 'active') return false;
-      if (status !== 'concluido' && mode === 'completed') return false;
-      return true;
-    });
+    if (!this.showCompleted()) {
+      return this.KANBAN_ORDER.filter(s => s !== 'concluido');
+    }
+    return [...this.KANBAN_ORDER];
   });
 
   getKanbanDemandsForStatus(status: DemandStatus): Demand[] {
@@ -1843,23 +1973,18 @@ export class DemandsComponent {
   });
 
   filteredDemands = computed(() => {
-    const mode = this.viewMode();
     const allDemands = this.demands();
+    const showCompleted = this.showCompleted();
     const idFilter = this.filterById().trim().toLowerCase();
     const consultoriaFilter = this.filterByConsultoria();
     const sistemaFilter = this.filterBySistema();
     const statusFilter = this.filterByStatus();
 
     let filtered: Demand[];
-    switch (mode) {
-      case 'active':
-        filtered = allDemands.filter(d => d.status !== 'concluido');
-        break;
-      case 'completed':
-        filtered = allDemands.filter(d => d.status === 'concluido');
-        break;
-      default:
-        filtered = [...allDemands];
+    if (showCompleted) {
+      filtered = [...allDemands];
+    } else {
+      filtered = allDemands.filter(d => d.status !== 'concluido');
     }
 
     // Aplicar filtro por ID
@@ -1911,6 +2036,26 @@ export class DemandsComponent {
     } else {
       this.expandedDemandId.set(demandId);
       this.newTaskTitle.set('');
+    }
+  }
+
+  openCardModal(demand: Demand): void {
+    this.cardModalDemandId.set(demand.id);
+    this.newTaskTitle.set('');
+  }
+
+  closeCardModal(): void {
+    this.cardModalDemandId.set(null);
+  }
+
+  async deleteDemandFromModal(demandId: string): Promise<void> {
+    if (confirm('Tem certeza que deseja excluir esta demanda?')) {
+      try {
+        this.closeCardModal();
+        await this.demandService.deleteDemand(demandId);
+      } catch (error) {
+        console.error('Error deleting demand:', error);
+      }
     }
   }
 

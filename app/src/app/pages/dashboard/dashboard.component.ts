@@ -203,42 +203,29 @@ import { HeaderComponent } from '../../components/header/header.component';
           }
         </section>
 
-        <div class="content-grid">
-          <!-- Status Overview -->
-          <section class="status-overview-section">
-            <div class="section-header">
-              <h2>
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="20" x2="18" y2="10"></line>
-                  <line x1="12" y1="20" x2="12" y2="4"></line>
-                  <line x1="6" y1="20" x2="6" y2="14"></line>
-                </svg>
-                Demandas por Status
-              </h2>
-              <a routerLink="/demandas" class="btn-link">Ver todas →</a>
-            </div>
-            <div class="status-list">
-              @for (status of statusList; track status.key) {
-                <div class="status-item">
-                  <div class="status-info">
-                    <span class="status-icon">{{ status.config.icon }}</span>
-                    <span class="status-name">{{ status.config.label }}</span>
-                  </div>
-                  <div class="status-bar-container">
-                    <div 
-                      class="status-bar" 
-                      [style.width.%]="getStatusPercentage(status.key)"
-                      [style.background]="status.config.color">
-                    </div>
-                  </div>
-                  <span class="status-count" [style.color]="status.config.color">
-                    {{ getStatusCount(status.key) }}
-                  </span>
-                </div>
-              }
-            </div>
-          </section>
-        </div>
+        <!-- Status Overview - Big Numbers -->
+        <section class="status-overview-section">
+          <div class="section-header">
+            <h2>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+              Demandas por Status
+            </h2>
+            <a routerLink="/demandas" class="btn-link">Ver todas →</a>
+          </div>
+          <div class="status-cards-grid">
+            @for (status of statusList; track status.key) {
+              <a routerLink="/demandas" class="status-number-card" [style.border-top-color]="status.config.color">
+                <span class="status-card-icon">{{ status.config.icon }}</span>
+                <span class="status-card-number" [style.color]="status.config.color">{{ getStatusCount(status.key) }}</span>
+                <span class="status-card-label">{{ status.config.label }}</span>
+              </a>
+            }
+          </div>
+        </section>
 
         <!-- Recent Activity -->
         <section class="recent-section">
@@ -903,19 +890,12 @@ import { HeaderComponent } from '../../components/header/header.component';
       border-color: #667eea;
     }
 
-    /* Content Grid */
-    .content-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-    }
-
     .status-overview-section, .recent-section {
       background: var(--bg-surface);
       border-radius: 16px;
       padding: 1.5rem;
       box-shadow: var(--shadow-sm);
+      margin-bottom: 2rem;
     }
 
     .section-header {
@@ -951,54 +931,49 @@ import { HeaderComponent } from '../../components/header/header.component';
       color: #764ba2;
     }
 
-    /* Status Overview */
-    .status-list {
-      display: flex;
-      flex-direction: column;
+    /* Status Overview - Big Numbers */
+    .status-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
       gap: 0.75rem;
     }
 
-    .status-item {
+    .status-number-card {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 1rem;
+      gap: 0.25rem;
+      padding: 1rem 0.5rem;
+      background: var(--bg-surface-hover);
+      border-radius: 12px;
+      border-top: 3px solid;
+      text-decoration: none;
+      transition: all 0.2s ease;
     }
 
-    .status-info {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      min-width: 140px;
+    .status-number-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      background: var(--bg-surface);
     }
 
-    .status-icon {
-      font-size: 1rem;
+    .status-card-icon {
+      font-size: 1.25rem;
     }
 
-    .status-name {
-      font-size: 0.875rem;
-      color: var(--text-secondary);
+    .status-card-number {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1;
     }
 
-    .status-bar-container {
-      flex: 1;
-      height: 8px;
-      background: var(--border);
-      border-radius: 4px;
-      overflow: hidden;
-    }
-
-    .status-bar {
-      height: 100%;
-      border-radius: 4px;
-      transition: width 0.3s ease;
-    }
-
-    .status-count {
-      min-width: 30px;
-      text-align: right;
+    .status-card-label {
+      font-size: 0.7rem;
       font-weight: 600;
-      font-size: 0.875rem;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      text-align: center;
     }
 
     /* Recent Demands */
@@ -1118,12 +1093,6 @@ import { HeaderComponent } from '../../components/header/header.component';
     .btn-primary:hover {
       transform: translateY(-2px);
       box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-    }
-
-    @media (max-width: 1024px) {
-      .content-grid {
-        grid-template-columns: 1fr;
-      }
     }
 
     @media (max-width: 640px) {

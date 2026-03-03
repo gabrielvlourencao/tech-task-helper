@@ -397,7 +397,7 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
     .content-header { margin-bottom: 1.5rem; }
     .back-link { display: inline-block; color: #0ea5e9; text-decoration: none; font-size: 0.9rem; margin-bottom: 0.5rem; }
     .back-link:hover { text-decoration: underline; }
-    .content-header h2 { font-size: 1.5rem; font-weight: 600; color: #0c4a6e; margin: 0; }
+    .content-header h2 { font-size: 1.5rem; font-weight: 600; color: var(--text-primary); margin: 0; }
     .demand-ref { font-size: 0.9rem; color: var(--text-tertiary); margin: 0.25rem 0 0 0; }
     .loading-state { display: flex; flex-direction: column; align-items: center; padding: 3rem; gap: 1rem; }
     .spinner-lg { width: 48px; height: 48px; border: 4px solid #e5e7eb; border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -408,7 +408,7 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
     .form-section-legacy { border-top: 1px dashed #e5e7eb; padding-top: 1.25rem; }
     .form-section h3 { font-size: 1rem; font-weight: 600; color: var(--text-secondary); margin: 0 0 0.5rem 0; }
     .hint { font-size: 0.8rem; color: var(--text-tertiary); margin: 0 0 0.75rem 0; }
-    .form-control { display: block; width: 100%; padding: 0.625rem 0.875rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem; line-height: 1.4; color: var(--text-primary); background: #fff; box-sizing: border-box; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .form-control { display: block; width: 100%; padding: 0.625rem 0.875rem; border: 1px solid var(--border-medium); border-radius: 8px; font-size: 0.9rem; line-height: 1.4; color: var(--text-primary); background: var(--bg-input); box-sizing: border-box; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
     .form-control::placeholder { color: var(--text-muted); }
     .form-control:hover { border-color: var(--text-muted); }
     .form-control:focus { outline: none; border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2); }
@@ -428,7 +428,7 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
     .data-table-repos th:nth-child(1), .data-table-repos td:nth-child(1) { width: 20%; }
     .data-table-repos th:nth-child(2), .data-table-repos td:nth-child(2) { width: 42%; }
     .data-table-repos th:nth-child(3), .data-table-repos td:nth-child(3) { width: 22%; }
-    .form-control-cell { min-height: 38px; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: #fff; }
+    .form-control-cell { min-height: 38px; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-input); }
     .form-control-cell:focus { border-color: #0ea5e9; box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15); }
     .form-control-select.form-control-cell { min-width: 100px; }
     .btn-remove-row { width: 24px; height: 24px; border: none; background: #fee2e2; color: #dc2626; border-radius: 6px; cursor: pointer; font-size: 1.1rem; line-height: 1; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
@@ -436,8 +436,8 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
     .btn-add-row { padding: 0.5rem 0.75rem; border: 1px dashed #d1d5db; background: var(--bg-surface-hover); border-radius: 8px; font-size: 0.85rem; color: var(--text-tertiary); cursor: pointer; }
     .btn-add-row:hover { background: #f0f9ff; border-color: #0ea5e9; color: #0369a1; }
     .steps-list { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 0.5rem; }
-    .step-card { display: flex; gap: 0.75rem; align-items: flex-start; padding: 1rem; border: 1px solid var(--border); border-radius: 10px; background: #fafafa; }
-    .step-number { flex: 0 0 auto; font-size: 0.8rem; font-weight: 700; color: #0ea5e9; padding: 0.25rem 0.5rem; background: #e0f2fe; border-radius: 6px; }
+    .step-card { display: flex; gap: 0.75rem; align-items: flex-start; padding: 1rem; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-surface-hover); }
+    .step-number { flex: 0 0 auto; font-size: 0.8rem; font-weight: 700; color: #0ea5e9; padding: 0.25rem 0.5rem; background: rgba(14, 165, 233, 0.15); border-radius: 6px; }
     .step-fields { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.5rem; }
     .form-control-step-desc { min-height: 60px; font-size: 0.875rem; }
     .btn-remove-step { align-self: center; }
@@ -455,7 +455,7 @@ const AMBIENTE_OPTIONS = ['DEV', 'QAS', 'PRD'];
     .demand-combobox .form-control { padding-right: 2.5rem; }
     .demand-combobox-clear { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: none; background: transparent; color: var(--text-tertiary); border-radius: 6px; cursor: pointer; }
     .demand-combobox-clear:hover { background: var(--bg-surface-alt); color: var(--text-secondary); }
-    .demand-dropdown { position: absolute; left: 0; right: 0; top: 100%; margin: 4px 0 0 0; padding: 0; list-style: none; background: #fff; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-height: 280px; overflow-y: auto; z-index: 50; }
+    .demand-dropdown { position: absolute; left: 0; right: 0; top: 100%; margin: 4px 0 0 0; padding: 0; list-style: none; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-height: 280px; overflow-y: auto; z-index: 50; }
     .demand-dropdown-item { padding: 0.625rem 0.875rem; cursor: pointer; border-bottom: 1px solid var(--border-light); display: flex; flex-direction: column; gap: 0.125rem; }
     .demand-dropdown-item:last-child { border-bottom: none; }
     .demand-dropdown-item:hover { background: #f0f9ff; }
