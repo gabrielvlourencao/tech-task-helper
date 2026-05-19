@@ -68,10 +68,13 @@ export class AuthService {
     return newUser;
   }
 
-  async signInWithGoogle(): Promise<void> {
+  async signInWithGoogle(): Promise<AppUser> {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    await signInWithPopup(this.firebase.auth, provider);
+    const credential = await signInWithPopup(this.firebase.auth, provider);
+    const appUser = await this.getOrCreateUser(credential.user);
+    this.userSignal.set(appUser);
+    return appUser;
   }
 
   async signOutUser(): Promise<void> {

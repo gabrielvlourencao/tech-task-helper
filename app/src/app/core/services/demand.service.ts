@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { FirebaseService } from './firebase.service';
 import { AuthService } from './auth.service';
-import { DailyReportService } from './daily-report.service';
+import { DailyTasksService } from './daily-tasks.service';
 import { Demand, Task, CustomField, DEFAULT_TASKS, DEFAULT_CUSTOM_FIELDS, DemandStatus } from '../models/demand.model';
 
 @Injectable({
@@ -24,7 +24,7 @@ import { Demand, Task, CustomField, DEFAULT_TASKS, DEFAULT_CUSTOM_FIELDS, Demand
 export class DemandService {
   private firebase = inject(FirebaseService);
   private authService = inject(AuthService);
-  private dailyReportService = inject(DailyReportService);
+  private dailyTasksService = inject(DailyTasksService);
 
   private demandsSignal = signal<Demand[]>([]);
   private loadingSignal = signal<boolean>(true);
@@ -453,15 +453,18 @@ export class DemandService {
       updates.inProgress = false;
       updates.completedAt = new Date(); // Salva a data de conclusão
       
-      // Adiciona só esta tarefa ao daily report (não todas as concluídas)
       const user = this.authService.user();
       if (user) {
         const sistema = demand.customFields.find(f => f.name === 'Sistema')?.value || 'Outros';
-        this.dailyReportService.addCompletedTask(user.uid, {
-          demandCode: demand.code,
-          taskTitle: task.title,
-          sistema
-        }).catch(err => console.error('Erro ao adicionar tarefa ao daily report:', err));
+        this.dailyTasksService
+          .addFromDemandTask(user.uid, {
+            demandId,
+            demandCode: demand.code,
+            demandTaskId: taskId,
+            taskTitle: task.title,
+            sistema
+          })
+          .catch(err => console.error('Erro ao adicionar tarefa do dia:', err));
       }
 
       // Se é uma tarefa padrão concluída hoje, adiciona ao rastreamento
@@ -474,10 +477,13 @@ export class DemandService {
         }
       }
     } else {
-      // Se está desmarcando, não inclui completedAt (será removido na atualização)
-      // Não definimos como undefined, apenas não incluímos no objeto
-      
-      // Remove do rastreamento se for tarefa padrão
+      const user = this.authService.user();
+      if (user) {
+        this.dailyTasksService
+          .reopenDemandTask(user.uid, { demandId, demandTaskId: taskId })
+          .catch(err => console.error('Erro ao reabrir tarefa do dia:', err));
+      }
+
       const isDefaultTask = DEFAULT_TASKS.some(dt => dt.title === task.title);
       if (isDefaultTask && demand.todayCompletedDefaultTasks) {
         demandUpdates.todayCompletedDefaultTasks = demand.todayCompletedDefaultTasks.filter(t => t !== task.title);

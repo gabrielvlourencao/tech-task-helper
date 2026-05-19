@@ -161,7 +161,9 @@ export class LoginComponent {
 
     try {
       await this.authService.signInWithGoogle();
-      this.router.navigate(['/']);
+      if (this.authService.isAuthenticated()) {
+        await this.router.navigateByUrl('/');
+      }
     } catch (error: any) {
       console.error('Login error:', error);
       if (error.code === 'auth/popup-closed-by-user') {

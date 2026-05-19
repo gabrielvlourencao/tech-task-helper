@@ -1,13 +1,13 @@
-import { Component, inject, computed, signal } from '@angular/core';
+import { Component, inject, computed, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { AuthService, DemandService, Demand, Task, STATUS_CONFIG, DemandStatus, PRIORITY_CONFIG, PRIORITY_ORDER, Priority, STATUS_CRITICALITY } from '../../core';
+import { AuthService, DemandService, Demand, STATUS_CONFIG, DemandStatus, DailyTasksService, DailyTask, todayDateString } from '../../core';
 import { HeaderComponent } from '../../components/header/header.component';
 
 @Component({
   selector: 'app-dashboard',
-  standalone: true,
-  imports: [CommonModule, RouterLink, HeaderComponent],
+  imports: [CommonModule, FormsModule, RouterLink, HeaderComponent],
   template: `
     <div class="dashboard-container">
       <app-header />
@@ -104,101 +104,77 @@ import { HeaderComponent } from '../../components/header/header.component';
           </section>
         }
 
-        <!-- Tarefas por Status -->
-        <section class="priority-tasks-section">
+        <!-- Tarefas do dia -->
+        <section class="daily-tasks-section">
           <div class="section-header">
             <h2>
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m3 8 4-4 4 4"/>
-                <path d="M7 4v16"/>
-                <path d="M11 12h4"/>
-                <path d="M11 16h7"/>
-                <path d="M11 20h10"/>
+                <path d="M9 11l3 3L22 4"></path>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
               </svg>
-              Tarefas Pendentes
+              Tarefas do dia
             </h2>
-            <span class="pending-count">{{ pendingTasksCount() }} pendente(s)</span>
+            <div class="daily-header-right">
+              <span class="pending-count">{{ dailyDoneCount() }}/{{ dailyTasks().length }} concluídas</span>
+              <a routerLink="/tarefas-do-dia" class="btn-link">Ver todas →</a>
+            </div>
           </div>
-          
-          @if (tasksByStatus().length > 0) {
-            <div class="status-groups">
-              @for (group of tasksByStatus(); track group.status) {
-                <div class="status-group" [class.collapsed]="!isStatusExpanded(group.status)">
-                  <button class="status-group-header" [style.border-left-color]="group.statusConfig.color" (click)="toggleStatusExpand(group.status)">
-                    <span class="expand-icon" [class.expanded]="isStatusExpanded(group.status)">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </span>
-                    <span class="status-group-icon">{{ group.statusConfig.icon }}</span>
-                    <span class="status-group-label" [style.color]="group.statusConfig.color">{{ group.statusConfig.label }}</span>
-                    <span class="status-group-count">{{ group.tasks.length }}</span>
-                  </button>
-                  @if (isStatusExpanded(group.status)) {
-                    <div class="status-group-tasks">
-                      @for (item of group.tasks; track item.task.id) {
-                        <div class="priority-task-item" [class.in-progress]="item.task.inProgress">
-                          <label class="checkbox-container-mini">
-                            <input 
-                              type="checkbox" 
-                              [checked]="false"
-                              (change)="togglePendingTask(item.demandId, item.task.id)">
-                            <span class="checkmark-mini"></span>
-                          </label>
-                          <div class="task-info">
-                            <div class="task-meta">
-                              <span class="task-demand-code">{{ item.demandCode }}</span>
-                              @if (item.sistema) {
-                                <span class="task-sistema-badge">{{ item.sistema }}</span>
-                              }
-                              @if (item.task.inProgress) {
-                                <span class="in-progress-badge">
-                                  <span class="pulse-dot-mini"></span>
-                                  Em execução
-                                </span>
-                              }
-                            </div>
-                            <span class="task-title-text">{{ item.task.title }}</span>
-                          </div>
-                          <div class="task-actions-mini">
-                            <button 
-                              type="button"
-                              class="btn-icon-mini btn-progress-mini" 
-                              [class.active]="item.task.inProgress"
-                              (click)="setPendingTaskInProgress(item.demandId, item.task.id)" 
-                              [title]="item.task.inProgress ? 'Parar execução' : 'Executar agora'">
-                              @if (item.task.inProgress) {
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                  <rect x="6" y="4" width="4" height="16"></rect>
-                                  <rect x="14" y="4" width="4" height="16"></rect>
-                                </svg>
-                              } @else {
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                                </svg>
-                              }
-                            </button>
-                            <a routerLink="/demandas" class="btn-go-task-mini" title="Ver demanda">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="m9 18 6-6-6-6"/>
-                              </svg>
-                            </a>
-                          </div>
-                        </div>
+
+          <div class="daily-progress-bar" role="progressbar" [attr.aria-valuenow]="dailyDoneCount()" [attr.aria-valuemin]="0" [attr.aria-valuemax]="dailyTasks().length || 1">
+            <div class="daily-progress-fill" [style.width.%]="dailyProgressPercent()"></div>
+          </div>
+
+          <div class="daily-add-bar">
+            <input
+              type="text"
+              class="daily-add-input"
+              placeholder="Nova mini tarefa..."
+              [ngModel]="newDailyTaskTitle()"
+              (ngModelChange)="newDailyTaskTitle.set($event)"
+              (keydown.enter)="addDailyTask()"
+              aria-label="Nova tarefa do dia" />
+            <button type="button" class="btn-daily-add" (click)="addDailyTask()" [disabled]="!newDailyTaskTitle().trim()">
+              Adicionar
+            </button>
+          </div>
+
+          @if (sortedDailyTasks().length > 0) {
+            <ul class="daily-task-list">
+              @for (task of sortedDailyTasks(); track task.id) {
+                <li class="daily-task-item" [class.done]="task.status === 'done'">
+                  <label class="checkbox-container-mini">
+                    <input
+                      type="checkbox"
+                      [checked]="task.status === 'done'"
+                      (change)="toggleDailyTask(task)"
+                      [attr.aria-label]="'Marcar ' + task.title + ' como concluída'" />
+                    <span class="checkmark-mini"></span>
+                  </label>
+                  <div class="task-info">
+                    <span class="task-title-text">{{ task.title }}</span>
+                    <div class="task-meta">
+                      @if (task.demandCode) {
+                        <span class="task-demand-code">{{ task.demandCode }}</span>
+                      }
+                      @if (task.sistema) {
+                        <span class="task-sistema-badge">{{ task.sistema }}</span>
+                      }
+                      @if (task.source === 'demand') {
+                        <span class="task-source-badge">Demanda</span>
                       }
                     </div>
-                  }
-                </div>
+                  </div>
+                </li>
               }
-            </div>
+            </ul>
           } @else {
             <div class="empty-priority-tasks">
               <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                <path d="M9 11l3 3L22 4"></path>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
               </svg>
-              <p>Nenhuma tarefa pendente!</p>
-              <span>Todas as tarefas foram concluídas</span>
+              <p>Nenhuma tarefa para hoje</p>
+              <span>Adicione mini tarefas acima ou conclua tarefas nas demandas</span>
             </div>
           }
         </section>
@@ -370,7 +346,130 @@ import { HeaderComponent } from '../../components/header/header.component';
       font-size: 0.75rem;
     }
 
-    /* Tarefas por Status */
+    /* Tarefas do dia */
+    .daily-tasks-section {
+      background: var(--bg-surface);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .daily-tasks-section .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .daily-tasks-section .section-header h2 {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .daily-tasks-section .section-header h2 svg {
+      color: var(--accent);
+    }
+
+    .daily-header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .daily-progress-bar {
+      height: 8px;
+      background: var(--bg-surface-hover);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+
+    .daily-progress-fill {
+      height: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    .daily-add-bar {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .daily-add-input {
+      flex: 1;
+      padding: 0.625rem 0.875rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.875rem;
+      background: var(--bg-surface);
+      color: var(--text-primary);
+    }
+
+    .daily-add-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .btn-daily-add {
+      padding: 0.625rem 1rem;
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-daily-add:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .daily-task-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+    }
+
+    .daily-task-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.625rem 0.75rem;
+      background: var(--bg-surface-hover);
+      border-radius: 8px;
+      border: 1px solid var(--border-light);
+    }
+
+    .daily-task-item.done .task-title-text {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    .task-source-badge {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: #0369a1;
+      background: #e0f2fe;
+      padding: 0.125rem 0.375rem;
+      border-radius: 4px;
+    }
+
     .priority-tasks-section {
       background: var(--bg-surface);
       border-radius: 16px;
@@ -1128,8 +1227,16 @@ import { HeaderComponent } from '../../components/header/header.component';
         font-size: 0.65rem;
       }
 
-      .priority-tasks-section {
+      .daily-tasks-section {
         padding: 1rem;
+      }
+
+      .daily-add-bar {
+        flex-direction: column;
+      }
+
+      .btn-daily-add {
+        width: 100%;
       }
 
       .priority-task-item {
@@ -1162,13 +1269,15 @@ import { HeaderComponent } from '../../components/header/header.component';
     }
   `]
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit {
   private authService = inject(AuthService);
   private demandService = inject(DemandService);
+  private dailyTasksService = inject(DailyTasksService);
 
   user = this.authService.user;
   demands = this.demandService.demands;
-  expandedStatuses = signal<Set<DemandStatus>>(new Set(['bloqueado', 'desenvolvimento', 'homologacao']));
+  dailyTasks = this.dailyTasksService.todayTasks;
+  newDailyTaskTitle = signal('');
 
   firstName = computed(() => {
     const name = this.user()?.displayName;
@@ -1187,71 +1296,24 @@ export class DashboardComponent {
   activeDemands = computed(() => this.demands().filter(d => d.status !== 'concluido').length);
   completedDemands = computed(() => this.demands().filter(d => d.status === 'concluido').length);
 
-  // Tarefas pendentes ordenadas por prioridade
-  // Tarefas agrupadas por status e ordenadas por criticidade
-  tasksByStatus = computed(() => {
-    const grouped = new Map<DemandStatus, { 
-      task: Task; 
-      demandId: string;
-      demandCode: string; 
-      demandTitle: string;
-      sistema: string;
-    }[]>();
+  dailyDoneCount = computed(() => this.dailyTasks().filter(t => t.status === 'done').length);
 
-    this.demands()
-      .filter(d => d.status !== 'concluido')
-      .forEach(demand => {
-        const sistema = demand.customFields.find(f => f.name === 'Sistema')?.value || '';
-        
-        demand.tasks
-          .filter(t => !t.completed)
-          .forEach(task => {
-            if (!grouped.has(demand.status)) {
-              grouped.set(demand.status, []);
-            }
-            grouped.get(demand.status)!.push({
-              task,
-              demandId: demand.id,
-              demandCode: demand.code,
-              demandTitle: demand.title,
-              sistema
-            });
-          });
-      });
+  dailyProgressPercent = computed(() => {
+    const total = this.dailyTasks().length;
+    return total === 0 ? 0 : Math.round((this.dailyDoneCount() / total) * 100);
+  });
 
-    // Converter para array e ordenar por criticidade do status
-    const result: { 
-      status: DemandStatus; 
-      statusConfig: typeof STATUS_CONFIG[DemandStatus];
-      tasks: { task: Task; demandId: string; demandCode: string; demandTitle: string; sistema: string }[];
-    }[] = [];
-
-    grouped.forEach((tasks, status) => {
-      // Ordenar tarefas dentro do grupo: em progresso primeiro
-      const sortedTasks = tasks.sort((a, b) => {
-        if (a.task.inProgress && !b.task.inProgress) return -1;
-        if (!a.task.inProgress && b.task.inProgress) return 1;
-        return 0;
-      });
-
-      result.push({
-        status,
-        statusConfig: STATUS_CONFIG[status],
-        tasks: sortedTasks.slice(0, 5) // Limitar a 5 tarefas por status
-      });
+  sortedDailyTasks = computed(() => {
+    const list = [...this.dailyTasks()];
+    return list.sort((a, b) => {
+      if (a.status !== b.status) return a.status === 'pending' ? -1 : 1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-
-    // Ordenar grupos por criticidade do status (maior primeiro)
-    return result.sort((a, b) => 
-      (STATUS_CRITICALITY[b.status] || 0) - (STATUS_CRITICALITY[a.status] || 0)
-    );
   });
 
-  pendingTasksCount = computed(() => {
-    return this.demands()
-      .filter(d => d.status !== 'concluido')
-      .reduce((acc, d) => acc + d.tasks.filter(t => !t.completed).length, 0);
-  });
+  ngOnInit(): void {
+    void this.initDailyTasks();
+  }
 
   currentTask = computed(() => {
     for (const demand of this.demands()) {
@@ -1286,18 +1348,69 @@ export class DashboardComponent {
     return 'Boa noite';
   }
 
-  isStatusExpanded(status: DemandStatus): boolean {
-    return this.expandedStatuses().has(status);
+  async addDailyTask(): Promise<void> {
+    const title = this.newDailyTaskTitle().trim();
+    const user = this.authService.user();
+    if (!title || !user) return;
+
+    const task: DailyTask = {
+      id: this.dailyTasksService.generateId(),
+      title,
+      status: 'pending',
+      source: 'manual',
+      createdAt: new Date().toISOString()
+    };
+
+    this.newDailyTaskTitle.set('');
+    try {
+      await this.dailyTasksService.setTasksForDay(user.uid, todayDateString(), [...this.dailyTasks(), task]);
+    } catch (err) {
+      console.error('Erro ao salvar tarefa do dia na home:', err);
+    }
   }
 
-  toggleStatusExpand(status: DemandStatus): void {
-    const current = new Set(this.expandedStatuses());
-    if (current.has(status)) {
-      current.delete(status);
-    } else {
-      current.add(status);
+  async toggleDailyTask(task: DailyTask): Promise<void> {
+    const user = this.authService.user();
+    if (!user) return;
+
+    const done = task.status !== 'done';
+    const tasks = this.dailyTasks().map(t =>
+      t.id === task.id
+        ? {
+            ...t,
+            status: done ? ('done' as const) : ('pending' as const),
+            completedAt: done ? new Date().toISOString() : undefined
+          }
+        : t
+    );
+
+    try {
+      await this.dailyTasksService.setTasksForDay(user.uid, todayDateString(), tasks);
+    } catch (err) {
+      console.error('Erro ao atualizar tarefa do dia na home:', err);
     }
-    this.expandedStatuses.set(current);
+  }
+
+  private async initDailyTasks(): Promise<void> {
+    await this.waitForAuth();
+    const user = this.authService.user();
+    if (!user) return;
+
+    try {
+      await this.dailyTasksService.ensureLoaded(user.uid);
+    } catch (err) {
+      console.error('Erro ao carregar tarefas do dia na home:', err);
+    }
+  }
+
+  private async waitForAuth(): Promise<void> {
+    const maxWait = 5000;
+    const step = 50;
+    let elapsed = 0;
+    while (this.authService.loading() && elapsed < maxWait) {
+      await new Promise<void>(r => setTimeout(r, step));
+      elapsed += step;
+    }
   }
 
   getStatusConfig(status: DemandStatus) {
@@ -1330,11 +1443,4 @@ export class DashboardComponent {
     await this.demandService.toggleTask(current.demand.id, current.task.id);
   }
 
-  async togglePendingTask(demandId: string, taskId: string): Promise<void> {
-    await this.demandService.toggleTask(demandId, taskId);
-  }
-
-  async setPendingTaskInProgress(demandId: string, taskId: string): Promise<void> {
-    await this.demandService.setTaskInProgress(demandId, taskId);
-  }
 }

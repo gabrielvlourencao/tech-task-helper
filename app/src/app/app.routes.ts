@@ -13,9 +13,14 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
-    path: 'daily-report',
-    loadComponent: () => import('./pages/daily-report/daily-report.component').then(m => m.DailyReportComponent),
+    path: 'tarefas-do-dia',
+    loadComponent: () => import('./pages/daily-tasks/daily-tasks.component').then(m => m.DailyTasksComponent),
     canActivate: [authGuard]
+  },
+  {
+    path: 'daily-report',
+    redirectTo: 'tarefas-do-dia',
+    pathMatch: 'full'
   },
   {
     path: 'documentos',
